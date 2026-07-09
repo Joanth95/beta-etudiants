@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Planning service</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a1a; }
+  body { padding: 12px; }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .controls label { font-size: 12px; font-weight: 600; color: #444; }
+  select, input[type="date"] { padding: 5px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+  button { padding: 6px 12px; background: #1565C0; color: #fff; border: none; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  button:hover { background: #0D47A1; }
+  button.secondary { background: #eee; color: #333; }
+  button.secondary:hover { background: #ddd; }
+  h2 { font-size: 16px; margin: 0 0 10px 0; }
+  #status { font-size: 12px; color: #777; margin-bottom: 8px; }
+  .tablewrap { overflow-x: auto; border: 1px solid #ccc; border-radius: 6px; }
+  table { border-collapse: collapse; font-size: 10.5px; white-space: nowrap; }
+  th, td { border: 1px solid #ddd; padding: 3px 5px; text-align: center; }
+  th.student, td.student { position: sticky; left: 0; background: #fafafa; text-align: left; z-index: 2; min-width: 150px; max-width: 150px; white-space: normal; font-weight: 600; }
+  thead th { background: #f0f0f0; position: sticky; top: 0; z-index: 1; }
+  thead th.student { z-index: 3; }
+  th.weekend, td.weekend { background: #f6f6f6; }
+  td.repos { color: #999; }
+  td.sortie-oui { background: #eafbea; }
+  td.sortie-non { background: #fdeaea; }
+  .daynum { font-weight: 700; }
+  .dayname { font-size: 8.5px; color: #777; display: block; }
+  .legend { margin-top: 12px; font-size: 10.5px; color: #444; line-height: 1.6; }
+  .empty { padding: 20px; text-align: center; color: #888; font-size: 13px; }
+</style>
+</head>
+<body>
+<h2>📋 Planning de service</h2>
+<div class="controls">
+  <label>Service</label>
+  <select id="service"></select>
+  <label>Début</label>
+  <input type="date" id="startDate">
+  <button id="today" class="secondary">Aujourd'hui</button>
+  <button id="prev" class="secondary">◀ 31j</button>
+  <button id="next" class="secondary">31j ▶</button>
+  <button id="refresh">Actualiser</button>
+</div>
+<div id="status"></div>
+<div id="content"></div>
+
+<script>
+grist.ready({requiredAccess: 'full'});
+
+const DAY_NAMES = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const WINDOW_LEN = 31;
+
+let SERVICES = null, PERIODES = null, ETUDIANTS = null, PLANNING = null, CODES = null, SORTIES = null;
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function keyToDate(key) { return new Date(key + 'T00:00:00Z'); }
+function dateToKey(d) { return d.toISOString().slice(0,10); }
+function addDaysKey(key, n) { const d = keyToDate(key); d.setUTCDate(d.getUTCDate()+n); return dateToKey(d); }
+function epochToKey(epoch) { if (epoch == null) return null; return dateToKey(new Date(epoch*1000)); }
+function fmtDayLabel(key) {
+  const d = keyToDate(key);
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  return { num: dd + '/' + mm, name: DAY_NAMES[d.getUTCDay()], isWeekend: (d.getUTCDay() === 0 || d.getUTCDay() === 6) };
+}
+
+async function loadData() {
+  document.getElementById('status').textContent = 'Chargement des données...';
+  [SERVICES, PERIODES, ETUDIANTS, PLANNING, CODES, SORTIES] = await Promise.all([
+    grist.docApi.fetchTable('SERVICES'),
+    grist.docApi.fetchTable('PERIODES_DE_STAGE'),
+    grist.docApi.fetchTable('LISTE_DES_ETUDIANTS'),
+    grist.docApi.fetchTable('PLANNING_HEBDO'),
+    grist.docApi.fetchTable('CODES_HORAIRES'),
+    grist.docApi.fetchTable('Sortie_de_stage')
+  ]);
+  document.getElementById('status').textContent = '';
+}
+
+function buildCodesMap() {
+  const map = {};
+  for (let i = 0; i < CODES.id.length; i++) {
+    map[CODES.id[i]] = {
+      Code: CODES.Code[i],
+      Duree: (CODES.Duree_heures[i] || 0) + (CODES.Ajustement_h[i] || 0),
+      Compte: !!CODES.Compte_stage[i]
+    };
+  }
+  return map;
+}
+
+function buildEtudiantsMap() {
+  const map = {};
+  for (let i = 0; i < ETUDIANTS.id.length; i++) {
+    map[ETUDIANTS.id[i]] = (ETUDIANTS.NOM[i] || '') + ' ' + (ETUDIANTS.PRENOM[i] || '');
+  }
+  return map;
+}
+
+function populateServiceSelect() {
+  const sel = document.getElementById('service');
+  const items = [];
+  for (let i = 0; i < SERVICES.id.length; i++) {
+    items.push({ id: SERVICES.id[i], nom: SERVICES.Nom[i] || ('Service ' + SERVICES.id[i]) });
+  }
+  items.sort((a,b) => a.nom.localeCompare(b.nom));
+  sel.innerHTML = items.map(it => '<option value="' + it.id + '">' + it.nom.replace(/</g,'&lt;') + '</option>').join('');
+  return items;
+}
+
+function pickDefaultService(items, windowStart, windowEnd) {
+  const counts = {};
+  for (let i = 0; i < PERIODES.id.length; i++) {
+    const du = epochToKey(PERIODES.Du[i]);
+    const au = epochToKey(PERIODES.Au[i]);
+    if (!du || !au) continue;
+    if (au < windowStart || du > windowEnd) continue;
+    const sid = PERIODES.Service[i];
+    counts[sid] = (counts[sid] || 0) + 1;
+  }
+  let best = null, bestCount = 0;
+  for (const it of items) {
+    const c = counts[it.id] || 0;
+    if (c > bestCount) { bestCount = c; best = it.id; }
+  }
+  return best || (items[0] ? items[0].id : null);
+}
+
+function buildSortieIndex() {
+  const idx = {};
+  for (let i = 0; i < SORTIES.id.length; i++) {
+    const pid = SORTIES.Pour_le_stage_du_[i];
+    const dk = epochToKey(SORTIES.Date[i]);
+    if (!pid || !dk) continue;
+    idx[pid + '_' + dk] = {
+      Compte: !!SORTIES.Compte_stage[i],
+      Duree: SORTIES.Duree_heures[i] || 0,
+      Motif: SORTIES.Motif[i] || ''
+    };
+  }
+  return idx;
+}
+
+function render() {
+  const startKey = document.getElementById('startDate').value;
+  const serviceId = parseInt(document.getElementById('service').value, 10);
+  const content = document.getElementById('content');
+  if (!startKey || !serviceId) { content.innerHTML = '<div class="empty">Sélectionnez un service et une date.</div>'; return; }
+
+  const days = [];
+  for (let i = 0; i < WINDOW_LEN; i++) days.push(addDaysKey(startKey, i));
+  const windowStart = days[0], windowEnd = days[days.length-1];
+
+  const codesMap = buildCodesMap();
+  const etudiantsMap = buildEtudiantsMap();
+  const sortieIdx = buildSortieIndex();
+
+  const matches = [];
+  for (let i = 0; i < PERIODES.id.length; i++) {
+    if (PERIODES.Service[i] !== serviceId) continue;
+    const du = epochToKey(PERIODES.Du[i]);
+    const au = epochToKey(PERIODES.Au[i]);
+    if (!du || !au) continue;
+    if (au < windowStart || du > windowEnd) continue;
+    matches.push({ periodeId: PERIODES.id[i], etudiantId: PERIODES.Etudiant[i], du, au });
+  }
+
+  if (matches.length === 0) {
+    content.innerHTML = '<div class="empty">Aucun étudiant sur ce service pour cette période.</div>';
+    return;
+  }
+
+  matches.sort((a,b) => (etudiantsMap[a.etudiantId] || '').localeCompare(etudiantsMap[b.etudiantId] || ''));
+
+  const dayCodeCols = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const periodeDayMap = {};
+  for (let i = 0; i < PLANNING.id.length; i++) {
+    const pid = PLANNING.Periode[i];
+    const semStart = epochToKey(PLANNING.Semaine_debut[i]);
+    if (!semStart) continue;
+    if (!periodeDayMap[pid]) periodeDayMap[pid] = {};
+    for (let off = 0; off < 7; off++) {
+      const dk = addDaysKey(semStart, off);
+      periodeDayMap[pid][dk] = PLANNING[dayCodeCols[off]][i];
+    }
+  }
+
+  let html = '<div class="tablewrap"><table><thead><tr><th class="student">Étudiant</th>';
+  for (const dk of days) {
+    const lbl = fmtDayLabel(dk);
+    html += '<th class="' + (lbl.isWeekend ? 'weekend' : '') + '"><span class="daynum">' + lbl.num + '</span><span class="dayname">' + lbl.name + '</span></th>';
+  }
+  html += '</tr></thead><tbody>';
+
+  for (const m of matches) {
+    const nom = etudiantsMap[m.etudiantId] || '—';
+    html += '<tr><td class="student">' + nom.replace(/</g,'&lt;') + '</td>';
+    for (const dk of days) {
+      if (dk < m.du || dk > m.au) { html += '<td></td>'; continue; }
+      const coderef = (periodeDayMap[m.periodeId] || {})[dk];
+      const code = coderef ? codesMap[coderef] : null;
+      const sortie = sortieIdx[m.periodeId + '_' + dk];
+      let cls = '', text = '', title = '';
+      if (sortie) {
+        if (sortie.Compte) {
+          cls = 'sortie-oui';
+          text = (code ? code.Code + '+' : '') + 'S';
+          title = (sortie.Motif || 'Sortie comptée') + ' (' + sortie.Duree + 'h)';
+        } else {
+          cls = 'sortie-non';
+          text = code ? code.Code : '·';
+          title = sortie.Motif || 'Absence non comptée';
+        }
+      } else if (code) {
+        text = code.Code;
+        if (code.Code === 'R' || code.Code === 'ABS') cls = 'repos';
+        title = code.Code + (code.Duree ? ' (' + code.Duree + 'h)' : '');
+      } else {
+        text = '';
+      }
+      html += '<td class="' + cls + '" title="' + title.replace(/"/g,'&quot;') + '">' + text + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  html += '<div class="legend"><strong>Légende :</strong> ';
+  const legendParts = [];
+  const seen = {};
+  for (let i = 0; i < CODES.id.length; i++) {
+    const c = CODES.Code[i];
+    if (seen[c]) continue;
+    seen[c] = true;
+    const lib = CODES.Libelle[i] || '';
+    legendParts.push('<strong>' + c + '</strong>=' + lib);
+  }
+  html += legendParts.join(' &nbsp; ');
+  html += ' &nbsp; <span style="background:#eafbea;padding:1px 4px;">vert</span>=sortie comptée &nbsp; <span style="background:#fdeaea;padding:1px 4px;">rose</span>=absence non comptée</div>';
+
+  content.innerHTML = html;
+}
+
+async function init() {
+  await loadData();
+  const items = populateServiceSelect();
+  const sk = todayKey();
+  document.getElementById('startDate').value = sk;
+  const windowEnd = addDaysKey(sk, WINDOW_LEN - 1);
+  const defaultService = pickDefaultService(items, sk, windowEnd);
+  if (defaultService) document.getElementById('service').value = defaultService;
+  render();
+}
+
+document.getElementById('service').addEventListener('change', render);
+document.getElementById('startDate').add
