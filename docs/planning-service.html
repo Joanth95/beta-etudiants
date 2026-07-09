@@ -20,7 +20,9 @@
   .tablewrap { overflow-x: auto; border: 1px solid #ccc; border-radius: 6px; }
   table { border-collapse: collapse; font-size: 10.5px; white-space: nowrap; }
   th, td { border: 1px solid #ddd; padding: 3px 5px; text-align: center; }
-  th.student, td.student { position: sticky; left: 0; background: #fafafa; text-align: left; z-index: 2; min-width: 150px; max-width: 150px; white-space: normal; font-weight: 600; }
+  th.student, td.student { position: sticky; left: 0; background: #fafafa; text-align: left; z-index: 2; min-width: 190px; max-width: 220px; white-space: normal; font-weight: 600; }
+  .student-name { font-weight: 600; }
+  .student-info { font-size: 8.5px; color: #666; font-weight: 400; white-space: normal; line-height: 1.35; margin-top: 1px; }
   thead th { background: #f0f0f0; position: sticky; top: 0; z-index: 1; }
   thead th.student { z-index: 3; }
   th.weekend, td.weekend { background: #f6f6f6; }
@@ -37,21 +39,36 @@
   @media print {
     body { padding: 0; }
     .controls, #status, .no-print { display: none !important; }
-    .print-header { display: block !important; margin-bottom: 10px; }
-    .print-header h2 { margin: 0 0 2px 0; }
-    .print-header .meta { font-size: 11px; color: #444; }
+    .print-header { display: block !important; margin-bottom: 8px; }
+    .print-header h2 { margin: 0 0 2px 0; font-size: 15px; }
+    .print-header .meta { font-size: 10.5px; color: #444; }
     .tablewrap { border: none; overflow: visible; }
-    table { font-size: 8.5px; }
-    th.student, td.student { position: static; }
+    table { font-size: 10px; }
+    th, td { padding: 2px 1px; }
+    th.student, td.student { position: static; min-width: 160px; max-width: 180px; }
+    .student-name { font-size: 10.5px; }
+    .student-info { font-size: 8px; }
     thead th { position: static; }
+    thead tr { height: 66px; }
+    th:not(.student) {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      vertical-align: bottom;
+      font-size: 9.5px;
+    }
+    th:not(.student) .daynum, th:not(.student) .dayname { display: inline; }
+    th:not(.student) .dayname { margin-left: 3px; }
+    td:not(.student) { min-width: 15px; padding: 2px 3px; font-size: 10.5px; font-weight: 700; }
     td.editable:hover { outline: none; }
+    .legend { font-size: 9.5px; }
     .print-footer {
       display: block !important;
       position: fixed; bottom: 0; left: 0; right: 0;
       text-align: center; font-size: 8px; color: #999;
       border-top: 1px solid #ccc; padding-top: 4px;
     }
-    @page { size: landscape; margin: 10mm; }
+    @page { size: landscape; margin: 8mm; }
   }
   .daynum { font-weight: 700; }
   .dayname { font-size: 8.5px; color: #777; display: block; }
@@ -93,6 +110,12 @@ function keyToDate(key) { return new Date(key + 'T00:00:00Z'); }
 function dateToKey(d) { return d.toISOString().slice(0,10); }
 function addDaysKey(key, n) { const d = keyToDate(key); d.setUTCDate(d.getUTCDate()+n); return dateToKey(d); }
 function epochToKey(epoch) { if (epoch == null) return null; return dateToKey(new Date(epoch*1000)); }
+function fmtDateFull(key) {
+  const d = keyToDate(key);
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  return dd + '/' + mm + '/' + d.getUTCFullYear();
+}
 function fmtDayLabel(key) {
   const d = keyToDate(key);
   const dd = String(d.getUTCDate()).padStart(2,'0');
@@ -198,7 +221,7 @@ function render() {
     const au = epochToKey(PERIODES.Au[i]);
     if (!du || !au) continue;
     if (au < windowStart || du > windowEnd) continue;
-    matches.push({ periodeId: PERIODES.id[i], etudiantId: PERIODES.Etudiant[i], du, au });
+    matches.push({ periodeId: PERIODES.id[i], etudiantId: PERIODES.Etudiant[i], du, au, niveau: PERIODES.Niveau[i] || '', tuteur: PERIODES.Tuteur[i] || '' });
   }
 
   if (matches.length === 0) {
@@ -230,7 +253,12 @@ function render() {
 
   for (const m of matches) {
     const nom = etudiantsMap[m.etudiantId] || '—';
-    html += '<tr><td class="student">' + nom.replace(/</g,'&lt;') + '</td>';
+    const infoParts = [];
+    if (m.niveau) infoParts.push(m.niveau);
+    infoParts.push(fmtDateFull(m.du) + ' → ' + fmtDateFull(m.au));
+    if (m.tuteur) infoParts.push('Tuteur : ' + m.tuteur);
+    const infoLine = infoParts.join(' · ').replace(/</g,'&lt;');
+    html += '<tr><td class="student"><div class="student-name">' + nom.replace(/</g,'&lt;') + '</div><div class="student-info">' + infoLine + '</div></td>';
     for (const dk of days) {
       if (dk < m.du || dk > m.au) { html += '<td class="hors-periode"></td>'; continue; }
       const cellInfo = (periodeDayMap[m.periodeId] || {})[dk];
