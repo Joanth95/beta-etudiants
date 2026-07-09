@@ -6,13 +6,13 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
-  body { display: flex; align-items: center; justify-content: center; }
-  .wrap { text-align: center; padding: 16px; }
-  button { padding: 14px 26px; background: #1565C0; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  html, body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: transparent; }
+  body { padding: 8px; }
+  .wrap { text-align: left; display: inline-block; }
+  button { padding: 7px 12px; background: #1565C0; color: #fff; border: none; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
   button:hover:not(:disabled) { background: #0D47A1; }
   button:disabled { background: #9aa0a6; cursor: wait; }
-  #status { margin-top: 10px; font-size: 12.5px; color: #444; line-height: 1.4; min-height: 16px; }
+  #status { margin-top: 5px; font-size: 11px; color: #444; line-height: 1.3; min-height: 13px; }
 </style>
 </head>
 <body>
@@ -51,116 +51,7 @@ document.getElementById('btn').addEventListener('click', async () => {
     for (let i = 0; i < nPer; i++) {
       const du = periodes.Du[i];
       const au = periodes.Au[i];
-<!DOCTYPE html>
- <html lang="fr">
- <head>
- <meta charset="UTF-8">
- <title>Générer les semaines</title>
- <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
- <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: transparent; }
-    body { padding: 8px; }
-    .wrap { text-align: left; display: inline-block; }
-    button { padding: 7px 12px; background: #1565C0; color: #fff; border: none; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
-    button:hover:not(:disabled) { background: #0D47A1; }
-    button:disabled { background: #9aa0a6; cursor: wait; }
-    #status { margin-top: 5px; font-size: 11px; color: #444; line-height: 1.3; min-height: 13px; }
-  </style>
-</head>
- <body>
-  <div class="wrap">
-     <button id="btn">📅 Générer les semaines</button>button>
-     <div id="status"></div>div>
-  </div>div>
-
-  <script>
-   grist.ready({requiredAccess: 'full'});
-
-   const PLANNING_TABLE = 'PLANNING_HEBDO';
-   const PERIODES_TABLE = 'PERIODES_DE_STAGE';
-
-   document.getElementById('btn').addEventListener('click', async () => {
-      const btn = document.getElementById('btn');
-      const status = document.getElementById('status');
-      btn.disabled = true;
-      status.textContent = 'Chargement des données...';
-
-      try {
-           const periodes = await grist.docApi.fetchTable(PERIODES_TABLE);
-           const planning = await grist.docApi.fetchTable(PLANNING_TABLE);
-
-           const nPer = periodes.id.length;
-           const nPlan = planning.id.length;
-
-           const existingWeeks = new Set();
-           for (let i = 0; i < nPlan; i++) {
-                  existingWeeks.add(planning.Periode[i] + '_' + planning.Semaine_debut[i]);
-           }
-
-           const newPeriode = [];
-           const newSemaine = [];
-
-           for (let i = 0; i < nPer; i++) {
-                  const du = periodes.Du[i];
-                  const au = periodes.Au[i];
-                  if (!du || !au) continue;
-                         const pid = periodes.id[i];
-
-                  let cursor = new Date(du * 1000);
-                  const wd = cursor.getUTCDay();
-                  if (wd !== 1) {
-                           if (wd === 0) cursor.setUTCDate(cursor.getUTCDate() + 1);
-                                    else cursor.setUTCDate(cursor.getUTCDate() - (wd - 1));
-                  }
-                         const auDate = new Date(au * 1000);
-
-                  while (cursor <= auDate) {
-                           const epochSec = Math.floor(cursor.getTime() / 1000);
-                           const key = pid + '_' + epochSec;
-                           if (!existingWeeks.has(key)) {
-                                      newPeriode.push(pid);
-                                      newSemaine.push(epochSec);
-                                      existingWeeks.add(key);
-                           }
-                                    cursor.setUTCDate(cursor.getUTCDate() + 7);
-                  }
-           }
-
-           if (newPeriode.length === 0) {
-                  status.textContent = '✅ Toutes les semaines sont déjà générées (' + nPer + ' périodes vérifiées).';
-           } else {
-                  const n = newPeriode.length;
-                  const zeros = new Array(n).fill(0);
-                  await grist.docApi.applyUserActions([[
-                           'BulkAddRecord',
-                           PLANNING_TABLE,
-                           new Array(n).fill(null),
-                   {
-                              Periode: newPeriode,
-                              Semaine_debut: newSemaine,
-                              Lundi: zeros,
-                              Mardi: zeros,
-                              Mercredi: zeros,
-                              Jeudi: zeros,
-                              Vendredi: zeros,
-                              Samedi: zeros,
-                              Dimanche: zeros
-                   }
-                         ]]);
-                  status.textContent = '✅ ' + n + ' semaine(s) ajoutée(s) !';
-           }
-      } catch (e) {
-           status.textContent = '❌ Erreur : ' + (e && e.message ? e.message : e);
-      } finally {
-           btn.disabled = false;
-      }
-   });
-  </script>
- </body>
-</html>
- 
- </style>if (!du || !au) continue;
+      if (!du || !au) continue;
       const pid = periodes.id[i];
 
       let cursor = new Date(du * 1000);
