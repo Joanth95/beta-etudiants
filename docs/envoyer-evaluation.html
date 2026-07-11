@@ -8,8 +8,277 @@
 <style>
   :root {
     --accent: #1d5fae;
-    --accent-dark: #164a8a;
-    --grey: #ccc;
+   --accent-dark: #164a8a;
+<!DOCTYPE html>
+    <html lang="fr">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
+    <title>Envoyer évaluation</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <style>
+      :root {
+            --accent: #1d5fae;
+            --accent-dark: #164a8a;
+            --grey: #ccc;
+            --text-muted: #666;
+      }
+      html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            gap: 8px;
+            text-align: center;
+      }
+      a.btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+      }
+      a.btn:hover {
+            background: var(--accent-dark);
+      }
+      a.btn.disabled {
+            background: var(--grey);
+            color: #888;
+            pointer-events: none;
+            cursor: not-allowed;
+      }
+      #status {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 260px;
+            line-height: 1.4;
+      }
+    </style>
+</head>
+  <body>
+
+      <a id="btn" class="btn disabled" target="_top">📧 Envoyer l'évaluation</a>a>
+      <div id="status">Sélectionnez une période de stage...</div>div>
+
+    <script>
+        const EMAIL_FROM_NAME_FALLBACK = "Cadre de santé - CHR Metz-Thionville";
+
+        let studentsById = null;
+        let servicesById = null;
+        let periodsById = null;
+        let usersById = null;
+
+        grist.ready({ requiredAccess: 'full' });
+
+        function fmtDate(ts) {
+              if (!ts) return '?';
+                    const d = new Date(ts * 1000);
+              return d.toLocaleDateString('fr-FR', { timeZone: 'UTC' });
+        }
+
+        async function loadLookup(tableId, cols) {
+              const table = await grist.docApi.fetchTable(tableId);
+              const rows = {};
+              table.id.forEach((id, i) => {
+                      const row = {};
+                      cols.forEach(c => { row[c] = table[c] ? table[c][i] : undefined; });
+                      rows[id] = row;
+              });
+              return rows;
+        }
+
+        function setStatus(msg) {
+              document.getElementById('status').textContent = msg;
+        }
+
+        function disableButton() {
+              const btn = document.getElementById('btn');
+              btn.classList.add('disabled');
+              btn.removeAttribute('href');
+        }
+
+        function escapeHtml(s) {
+              return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function copyRichEmail(htmlBody, textBody) {
+              try {
+                      const item = new ClipboardItem({
+                                'text/html': new Blob([htmlBody], { type: 'text/html' }),
+                                'text/plain': new Blob([textBody], { type: 'text/plain' }),
+                      });
+                      await navigator.clipboard.write([item]);
+                      return true;
+              } catch (e) {
+                      return false;
+              }
+        }
+
+        const ETABLISSEMENT = 'CHR Metz-Thionville';
+        let lastEmail = null;
+
+        grist.onRecord(async (record) => {
+              const btn = document.getElementById('btn');
+
+              if (!record) {
+                      disableButton();
+                      setStatus('Sélectionnez une période de stage...');
+                      return;
+              }
+
+                    if (!periodsById) {
+                            try {
+                                      periodsById = await loadLookup('PERIODES_DE_STAGE', ['Etudiant', 'Du', 'Au', 'Service', 'Lien_evaluation']);
+                            } catch (e) {
+                                      disableButton();
+                                      setStatus('Erreur de lecture de la table périodes.');
+                                      return;
+                            }
+                    }
+                          const period = periodsById[record.id];
+              if (!period || !period.Etudiant) {
+                      disableButton();
+                      setStatus('Sélectionnez une période de stage...');
+                      return;
+              }
+
+                    if (!studentsById) {
+                            try {
+                                      studentsById = await loadLookup('LISTE_DES_ETUDIANTS', ['NOM_PRENOM', 'PRENOM', 'Adresse_mail']);
+                            } catch (e) {
+                                      disableButton();
+                                      setStatus('Erreur de lecture de la table étudiants.');
+                                      return;
+                            }
+                    }
+                          if (!servicesById) {
+                                  try {
+                                            servicesById = await loadLookup('SERVICES', ['Nom', 'Cadre_ref']);
+                                  } catch (e) {
+                                            servicesById = {};
+                                  }
+                          }
+                                if (!usersById) {
+                                        try {
+                                                  usersById = await loadLookup('UTILISATEURS', ['Nom', 'Prenom', 'Fonction']);
+                                        } catch (e) {
+                                                  usersById = {};
+                                        }
+                                }
+
+                                      const etu = studentsById[period.Etudiant];
+              if (!etu) {
+                      disableButton();
+                      setStatus('Étudiant introuvable.');
+                      return;
+              }
+                    if (!etu.Adresse_mail) {
+                            disableButton();
+                            setStatus((etu.NOM_PRENOM || 'Cet étudiant') + " n'a pas d'adresse mail renseignée.");
+                            return;
+                    }
+                          if (!period.Lien_evaluation) {
+                                  disableButton();
+                                  setStatus("Aucun lien d'évaluation généré pour cette période.");
+                                  return;
+                          }
+
+                                const du = fmtDate(period.Du);
+              const au = fmtDate(period.Au);
+              const prenom = etu.PRENOM || '';
+              const svc = servicesById[period.Service] || {};
+              const service = svc.Nom || '';
+              const lien = period.Lien_evaluation;
+
+              const cadre = svc.Cadre_ref ? usersById[svc.Cadre_ref] : null;
+              const signatureNom = cadre ? (cadre.Prenom + ' ' + cadre.Nom).trim() : '';
+              const signatureFonction = cadre ? (cadre.Fonction || '') : '';
+              const signatureLine1 = signatureNom || EMAIL_FROM_NAME_FALLBACK;
+              const signatureLine2 = [signatureFonction, service].filter(Boolean).join(' - ');
+
+              const subject = `Votre avis sur votre stage${service ? ' de ' + service : ''} (${du} - ${au})`;
+
+              const textBody =
+                `Bonjour ${prenom},
+
+                Votre stage touche à sa fin.
+
+                Service : ${service || '-'}
+                Période : du ${du} au ${au}
+
+                Nous vous serions reconnaissants de prendre quelques minutes pour répondre à notre questionnaire d'évaluation de stage. Vos réponses nous aident à améliorer l'accueil et l'encadrement des futurs étudiants.
+
+                Merci de cliquer sur le lien ci-dessous : il est déjà associé à votre période de stage.
+
+                ${lien}
+
+                Vos réponses restent confidentielles.
+
+                Merci pour votre implication durant ce stage.
+
+                Cordialement,
+                ${signatureLine1}${signatureLine2 ? '\n' + signatureLine2 : ''}
+                ${ETABLISSEMENT}`;
+
+              const htmlBody =
+                `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.6;max-width:600px;">
+                  <p>Bonjour ${escapeHtml(prenom)},</p>
+                    <p>Votre stage touche à sa fin.</p>
+                      <table style="border-collapse:collapse;margin:12px 0;">
+                          <tr><td style="padding:2px 10px 2px 0;color:#555;">Service</td><td style="font-weight:bold;">${escapeHtml(service || '-')}</td></tr>
+                              <tr><td style="padding:2px 10px 2px 0;color:#555;">Période</td><td style="font-weight:bold;">du ${escapeHtml(du)} au ${escapeHtml(au)}</td></tr>
+                                </table>
+                                  <p>Nous vous serions reconnaissants de prendre quelques minutes pour répondre à notre questionnaire d'évaluation de stage. Vos réponses nous aident à améliorer l'accueil et l'encadrement des futurs étudiants.</p>
+                                    <p style="text-align:center;margin:24px 0;">
+                                        <a href="${lien}" style="background:#1d5fae;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">Répondre au questionnaire</a>
+                                          </p>
+                                            <p style="color:#666;font-size:12px;">Si le bouton ne fonctionne pas : <a href="${lien}">${escapeHtml(lien)}</a></p>
+                                              <p>Vos réponses restent confidentielles.</p>
+                                                <p>Merci pour votre implication durant ce stage.</p>
+                                                  <p>Cordialement,<br>
+                                                    <strong>${escapeHtml(signatureLine1)}</strong>${signatureLine2 ? '<br>' + escapeHtml(signatureLine2) : ''}<br>
+                                                      ${escapeHtml(ETABLISSEMENT)}</p>
+                                                      </div>`;
+
+              lastEmail = { htmlBody, textBody };
+
+              const mailto = `mailto:${encodeURIComponent(etu.Adresse_mail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(textBody)}`;
+
+              btn.href = mailto;
+              btn.classList.remove('disabled');
+              setStatus('Vers : ' + etu.NOM_PRENOM + ' (' + etu.Adresse_mail + ')');
+        });
+
+        document.getElementById('btn').addEventListener('click', () => {
+              if (!lastEmail) return;
+                    copyRichEmail(lastEmail.htmlBody, lastEmail.textBody).then(ok => {
+                            if (ok) {
+                                      setStatus('Mail ouvert. Collez (Ctrl+V) dans le corps pour la version enrichie avec lien cliquable.');
+                            }
+                    });
+        });
+    </script>
+  </body>
+</html>
+
+  </body>--grey: #ccc;
     --text-muted: #666;
   }
   html, body {
