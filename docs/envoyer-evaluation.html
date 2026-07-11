@@ -71,6 +71,7 @@
 
   let studentsById = null;
   let servicesById = null;
+    let periodsById = null;
 
   grist.ready({ requiredAccess: 'full' });
 
@@ -104,7 +105,23 @@
   grist.onRecord(async (record) => {
     const btn = document.getElementById('btn');
 
-    if (!record || !record.Etudiant) {
+    if (!record) {
+      disableButton();
+      setStatus('Sélectionnez une période de stage...');
+      return;
+    }
+
+    if (!periodsById) {
+      try {
+        periodsById = await loadLookup('PERIODES_DE_STAGE', ['Etudiant', 'Du', 'Au', 'Service', 'Lien_evaluation']);
+      } catch (e) {
+        disableButton();
+        setStatus('Erreur de lecture de la table périodes.');
+        return;
+      }
+    }
+    const period = periodsById[record.id];
+    if (!period || !period.Etudiant) {
       disableButton();
       setStatus('Sélectionnez une période de stage...');
       return;
@@ -127,11 +144,10 @@
       }
     }
 
-console.log('DEBUG_ETU', record.Etudiant, typeof record.Etudiant, JSON.stringify(Object.keys(studentsById)));
-    const etu = studentsById[record.Etudiant];
+    const etu = studentsById[period.Etudiant];
     if (!etu) {
       disableButton();
-      setStatus('DBG etu=' + record.Etudiant + ' type=' + typeof record.Etudiant + ' keys=' + JSON.stringify(Object.keys(studentsById)));
+      setStatus('Étudiant introuvable.');
       return;
     }
     if (!etu.Adresse_mail) {
@@ -139,17 +155,17 @@ console.log('DEBUG_ETU', record.Etudiant, typeof record.Etudiant, JSON.stringify
       setStatus((etu.NOM_PRENOM || 'Cet étudiant') + " n'a pas d'adresse mail renseignée.");
       return;
     }
-    if (!record.Lien_evaluation) {
+    if (!period.Lien_evaluation) {
       disableButton();
       setStatus("Aucun lien d'évaluation généré pour cette période.");
       return;
     }
 
-    const du = fmtDate(record.Du);
-    const au = fmtDate(record.Au);
+    const du = fmtDate(period.Du);
+    const au = fmtDate(period.Au);
     const prenom = etu.PRENOM || '';
-    const service = (servicesById[record.Service] || {}).Label || '';
-    const lien = record.Lien_evaluation;
+    const service = (servicesById[period.Service] || {}).Label || '';
+    const lien = period.Lien_evaluation;
 
     const subject = `Votre avis sur votre stage (${du} - ${au})`;
     const body =
