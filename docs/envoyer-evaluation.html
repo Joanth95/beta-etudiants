@@ -131,7 +131,7 @@ console.log('DEBUG_ETU', record.Etudiant, typeof record.Etudiant, JSON.stringify
     const etu = studentsById[record.Etudiant];
     if (!etu) {
       disableButton();
-      setStatus('Étudiant introuvable.');
+      setStatus('DBG etu=' + record.Etudiant + ' type=' + typeof record.Etudiant + ' keys=' + JSON.stringify(Object.keys(studentsById)));
       return;
     }
     if (!etu.Adresse_mail) {
