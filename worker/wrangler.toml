@@ -1,0 +1,24 @@
+name = "espace-etudiant-api"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# URL de l'API de l'instance Grist de la DINUM
+GRIST_BASE_URL = "https://grist.numerique.gouv.fr/api"
+
+# Identifiant de ton document Grist (visible dans l'URL du document,
+# ou via Paramètres > API du document)
+GRIST_DOC_ID = "A_REMPLACER"
+
+# Noms des tables et colonnes dans ton document Grist
+TABLE_ETUDIANTS = "Etudiants"
+TABLE_PLANNING = "Planning"
+COL_CODE = "Code"
+COL_PLANNING_CODE = "Code_Etudiant"
+
+# Origine autorisée : mets l'URL de ton site GitHub Pages, par exemple
+# "https://toncompte.github.io" (ou "*" pendant les tests)
+ALLOWED_ORIGIN = "*"
+
+# La clé API Grist est un SECRET, ne jamais la mettre ici.
+# La définir avec :  npx wrangler secret put GRIST_API_KEY

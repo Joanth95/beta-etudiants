@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace étudiant — Planning</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Écran de connexion -->
+  <section id="login-screen" class="screen">
+    <div class="login-card">
+      <h1>Espace étudiant</h1>
+      <p class="subtitle">Gestion de votre planning</p>
+      <form id="login-form">
+        <label for="login-code">Code personnel</label>
+        <input type="password" id="login-code" autocomplete="off"
+               placeholder="Votre code personnel" required minlength="4">
+        <button type="submit" class="btn btn-primary" id="login-btn">Se connecter</button>
+        <p id="login-error" class="error" hidden></p>
+      </form>
+      <p class="hint">Votre code personnel vous a été remis par le service.
+        En cas de perte, contactez votre gestionnaire.</p>
+    </div>
+  </section>
+
+  <!-- Application -->
+  <section id="app-screen" class="screen" hidden>
+    <header class="app-header">
+      <div>
+        <h1>Mon planning</h1>
+        <p id="student-name" class="subtitle"></p>
+      </div>
+      <button id="logout-btn" class="btn btn-ghost">Se déconnecter</button>
+    </header>
+
+    <nav class="week-nav">
+      <button id="prev-week" class="btn btn-ghost" aria-label="Semaine précédente">◀</button>
+      <div class="week-nav-center">
+        <span id="week-label"></span>
+        <button id="today-btn" class="btn btn-link">Aujourd'hui</button>
+      </div>
+      <button id="next-week" class="btn btn-ghost" aria-label="Semaine suivante">▶</button>
+    </nav>
+
+    <main id="planning" class="planning" aria-live="polite"></main>
+
+    <button id="add-btn" class="btn btn-primary fab">+ Ajouter un créneau</button>
+  </section>
+
+  <!-- Formulaire d'ajout / modification -->
+  <dialog id="entry-dialog">
+    <form id="entry-form" method="dialog">
+      <h2 id="dialog-title">Nouveau créneau</h2>
+      <input type="hidden" id="entry-id">
+
+      <label for="entry-date">Date</label>
+      <input type="date" id="entry-date" required>
+
+      <div class="row">
+        <div>
+          <label for="entry-start">Début</label>
+          <input type="time" id="entry-start" required>
+        </div>
+        <div>
+          <label for="entry-end">Fin</label>
+          <input type="time" id="entry-end" required>
+        </div>
+      </div>
+
+      <label for="entry-activity">Activité</label>
+      <input type="text" id="entry-activity" placeholder="Cours, stage, permanence…" required maxlength="120">
+
+      <label for="entry-place">Lieu</label>
+      <input type="text" id="entry-place" placeholder="Salle, site…" maxlength="120">
+
+      <label for="entry-notes">Notes</label>
+      <textarea id="entry-notes" rows="2" maxlength="500"></textarea>
+
+      <p id="entry-error" class="error" hidden></p>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

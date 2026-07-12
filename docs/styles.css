@@ -1,0 +1,216 @@
+/* Espace étudiant — style inspiré du Système de Design de l'État (DSFR) */
+
+:root {
+  --bleu: #000091;
+  --bleu-hover: #1212ff;
+  --rouge: #ce0500;
+  --gris-fond: #f6f6f6;
+  --gris-bordure: #ddd;
+  --texte: #161616;
+  --texte-doux: #666;
+  --blanc: #fff;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: "Marianne", "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--gris-fond);
+  color: var(--texte);
+  line-height: 1.5;
+}
+
+h1 { font-size: 1.4rem; margin: 0; }
+h2 { font-size: 1.15rem; margin: 0 0 1rem; }
+
+.subtitle { color: var(--texte-doux); margin: 0.2rem 0 0; font-size: 0.95rem; }
+
+.screen { min-height: 100vh; }
+
+/* ---------- Connexion ---------- */
+
+#login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login-card {
+  background: var(--blanc);
+  border-top: 4px solid var(--bleu);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+
+.hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 1.5rem; }
+
+/* ---------- Formulaires ---------- */
+
+label { font-weight: 600; font-size: 0.9rem; }
+
+input, textarea {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--gris-bordure);
+  border-radius: 4px;
+  width: 100%;
+  background: var(--blanc);
+}
+
+input:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid var(--bleu);
+  outline-offset: 2px;
+}
+
+.error { color: var(--rouge); font-size: 0.9rem; margin: 0.25rem 0 0; }
+
+/* ---------- Boutons ---------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary { background: var(--bleu); color: var(--blanc); }
+.btn-primary:hover { background: var(--bleu-hover); }
+.btn-primary:disabled { background: #999; cursor: wait; }
+
+.btn-ghost { background: transparent; color: var(--bleu); }
+.btn-ghost:hover { background: rgba(0, 0, 145, 0.08); }
+
+.btn-link {
+  background: none; border: none; color: var(--bleu);
+  text-decoration: underline; cursor: pointer; font-size: 0.85rem;
+}
+
+/* ---------- En-tête appli ---------- */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--blanc);
+  border-bottom: 3px solid var(--bleu);
+  padding: 1rem 1.25rem;
+}
+
+/* ---------- Navigation semaine ---------- */
+
+.week-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 720px;
+  margin: 1rem auto 0;
+  padding: 0 1rem;
+}
+
+.week-nav-center { text-align: center; }
+#week-label { font-weight: 600; display: block; }
+
+/* ---------- Planning ---------- */
+
+.planning {
+  max-width: 720px;
+  margin: 1rem auto 6rem;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.day h3 {
+  font-size: 0.9rem;
+  text-transform: capitalize;
+  color: var(--texte-doux);
+  margin: 0 0 0.4rem;
+}
+
+.day.today h3 { color: var(--bleu); }
+
+.entry {
+  background: var(--blanc);
+  border-left: 4px solid var(--bleu);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.entry-time { font-weight: 700; white-space: nowrap; }
+.entry-main { flex: 1; }
+.entry-title { font-weight: 600; }
+.entry-meta { font-size: 0.85rem; color: var(--texte-doux); }
+
+.entry-actions { display: flex; gap: 0.25rem; }
+.entry-actions button {
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; padding: 0.3rem; border-radius: 4px;
+}
+.entry-actions button:hover { background: var(--gris-fond); }
+
+.empty-week {
+  text-align: center;
+  color: var(--texte-doux);
+  padding: 3rem 1rem;
+}
+
+/* ---------- Bouton flottant ---------- */
+
+.fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  padding: 0.8rem 1.4rem;
+}
+
+/* ---------- Dialogue ---------- */
+
+dialog {
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+
+dialog form { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.row { display: flex; gap: 0.75rem; }
+.row > div { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .entry { flex-wrap: wrap; }
+  .fab { right: 1rem; bottom: 1rem; }
+}
