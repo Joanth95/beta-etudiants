@@ -44,6 +44,9 @@ const MOTIFS = ["Rattrapage", "Retard", "Sortie de stage"];
 // Nombre maximal de semaines générées automatiquement pour une période
 const MAX_SEMAINES_GENEREES = 30;
 
+// Base horaire réglementaire pour calculer les heures de stage à réaliser
+const HEURES_PAR_SEMAINE = 35;
+
 export default {
   async fetch(request, env) {
     const cors = corsHeaders(env);
@@ -159,18 +162,25 @@ async function buildPayload(env, student) {
       nom: student.fields.NOM || "",
     },
     motifs: MOTIFS,
-    periodes: periodes.map((p) => ({
-      id: p.id,
-      Du: epochToIso(p.fields.Du),
-      Au: epochToIso(p.fields.Au),
-      Service: serviceName.get(p.fields.Service) || "",
-      Niveau: p.fields.Niveau || "",
-      En_cours: !!p.fields.En_cours,
-      A_FAIRE: p.fields.A_FAIRE ?? null,
-      FAIT: p.fields.FAIT ?? null,
-      Solde_heures: p.fields.Solde_heures ?? null,
-      Tuteur: p.fields.Tuteur || "",
-    })),
+    periodes: periodes.map((p) => {
+      // Heures à réaliser : valeur saisie dans Grist si > 0, sinon calcul
+      // automatique sur la base de 35 h par semaine de stage.
+      const heuresBase = HEURES_PAR_SEMAINE * nombreSemaines(p.fields.Du, p.fields.Au);
+      const aFaire = p.fields.A_FAIRE > 0 ? p.fields.A_FAIRE : heuresBase;
+      const fait = p.fields.FAIT ?? 0;
+      return {
+        id: p.id,
+        Du: epochToIso(p.fields.Du),
+        Au: epochToIso(p.fields.Au),
+        Service: serviceName.get(p.fields.Service) || "",
+        Niveau: p.fields.Niveau || "",
+        En_cours: !!p.fields.En_cours,
+        A_FAIRE: aFaire,
+        FAIT: fait,
+        Solde_heures: Math.round((fait - aFaire) * 100) / 100,
+        Tuteur: p.fields.Tuteur || "",
+      };
+    }),
     semaines: semaines.map((s) => {
       const out = {
         id: s.id,
@@ -192,6 +202,7 @@ async function buildPayload(env, student) {
     sorties: sorties.map((s) => ({
       id: s.id,
       Motif: s.fields.Motif || "",
+      Commentaire: s.fields.Commentaire || "",
       Date: epochToIso(s.fields.Date),
       Heure_debut: s.fields.Heure_debut || "",
       Heure_fin: s.fields.Heure_fin || "",
@@ -247,6 +258,7 @@ async function createSortie(request, env, student) {
     Anonymat: student.rowId,
     Code_anonymat: student.code,
     Motif: motif,
+    Commentaire: cleanText(body.Commentaire, 200),
     Date: dateEpoch,
     Heure_debut: debut,
     Heure_fin: fin,
@@ -368,16 +380,21 @@ async function inscription(request, env) {
     studentRowId = created.records[0].id;
   }
 
+  const duEpoch = Date.parse(du + "T00:00:00Z") / 1000;
+  const auEpoch = Date.parse(au + "T00:00:00Z") / 1000;
+
   const createdPeriode = await grist(env, "POST", `/tables/${T_PERIODES}/records`, {
     records: [{
       fields: {
         Anonymat: studentRowId,
         Code_anonymat: code,
-        Du: Date.parse(du + "T00:00:00Z") / 1000,
-        Au: Date.parse(au + "T00:00:00Z") / 1000,
+        Du: duEpoch,
+        Au: auEpoch,
         Niveau: niveau,
         Service: serviceId,
         Tuteur: tuteur,
+        // Heures à réaliser : 35 h par semaine de stage
+        A_FAIRE: HEURES_PAR_SEMAINE * nombreSemaines(duEpoch, auEpoch),
       },
     }],
   });
@@ -394,19 +411,31 @@ function cleanText(value, max) {
   return String(value || "").trim().slice(0, max);
 }
 
-async function genererSemaines(env, periodeId, duIso, auIso) {
+/** Liste des lundis (epoch) couvrant la période [du, au]. */
+function lundisDeLaPeriode(du, au) {
   const DAY = 86400;
-  const du = Date.parse(duIso + "T00:00:00Z") / 1000;
-  const au = Date.parse(auIso + "T00:00:00Z") / 1000;
+  if (typeof du !== "number" || typeof au !== "number") return [];
   // Lundi de la semaine du début de stage (getUTCDay : lundi = 1)
   const shift = (new Date(du * 1000).getUTCDay() + 6) % 7;
   let monday = du - shift * DAY;
-
-  const records = [];
-  while (monday <= au && records.length < MAX_SEMAINES_GENEREES) {
-    records.push({ fields: { Periode: periodeId, Semaine_debut: monday } });
+  const lundis = [];
+  while (monday <= au && lundis.length < MAX_SEMAINES_GENEREES) {
+    lundis.push(monday);
     monday += 7 * DAY;
   }
+  return lundis;
+}
+
+/** Nombre de semaines de stage couvertes par la période. */
+function nombreSemaines(du, au) {
+  return lundisDeLaPeriode(du, au).length;
+}
+
+async function genererSemaines(env, periodeId, duIso, auIso) {
+  const du = Date.parse(duIso + "T00:00:00Z") / 1000;
+  const au = Date.parse(auIso + "T00:00:00Z") / 1000;
+  const records = lundisDeLaPeriode(du, au)
+    .map((monday) => ({ fields: { Periode: periodeId, Semaine_debut: monday } }));
   if (records.length) {
     await grist(env, "POST", `/tables/${T_HEBDO}/records`, { records });
   }

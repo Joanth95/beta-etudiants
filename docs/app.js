@@ -4,6 +4,14 @@ const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
+// Libellés d'affichage des types de déclaration (le stockage Grist garde
+// « Rattrapage »/« Retard »/« Sortie de stage » pour la formule Ajustement_h)
+const TYPE_LABELS = {
+  "Rattrapage": "Heures supplémentaires",
+  "Retard": "Retard",
+  "Sortie de stage": "Sortie de stage",
+};
+
 const state = {
   code: sessionStorage.getItem("code") || null,
   data: null, // { etudiant, motifs, periodes, semaines, codes, sorties }
@@ -139,7 +147,9 @@ function renderSorties() {
     badgeEl.classList.add("sortie-hours");
 
     const main = el("div", "sortie-main");
-    const title = el("div", "sortie-title", s.Motif || "(sans motif)");
+    const label = TYPE_LABELS[s.Motif] || s.Motif || "(sans motif)";
+    const titleText = s.Commentaire ? `${label} — ${s.Commentaire}` : label;
+    const title = el("div", "sortie-title", titleText);
     title.appendChild(badge(s.Valide ? "Validé" : "En attente", s.Valide ? "ok" : "pending"));
     main.appendChild(title);
     main.appendChild(el("div", "sortie-meta",
@@ -238,24 +248,35 @@ function selectedType() {
   return document.querySelector('input[name="sortie-type"]:checked').value;
 }
 
+// Aide à la saisie du motif selon le type choisi
+const MOTIF_PLACEHOLDER = {
+  "Rattrapage": "Ex. : heures rendues, remplacement…",
+  "Retard": "Ex. : transport, empêchement…",
+  "Sortie de stage": "Ex. : IFSI, AFGSU, regroupement…",
+};
+
+function syncTypeUI() {
+  const type = selectedType();
+  // La case « compte en temps de stage » ne concerne que la sortie de stage
+  // (heures sup comptent toujours, retard déduit toujours).
+  $("sortie-compte-wrap").hidden = type !== "Sortie de stage";
+  $("sortie-motif-texte").placeholder = MOTIF_PLACEHOLDER[type] || "Précisez si besoin";
+}
+
 $("add-sortie-btn").addEventListener("click", () => {
   document.querySelector('input[name="sortie-type"][value="Rattrapage"]').checked = true;
-  $("sortie-details").hidden = true;
   $("sortie-motif-texte").value = "";
   $("sortie-compte").checked = true;
   $("sortie-date").value = isoDate(new Date());
   $("sortie-debut").value = "";
   $("sortie-fin").value = "";
   $("sortie-error").hidden = true;
+  syncTypeUI();
   dialog.showModal();
 });
 
 for (const radio of document.querySelectorAll('input[name="sortie-type"]')) {
-  radio.addEventListener("change", () => {
-    // Le motif libre et la case « compte en temps de stage » ne concernent
-    // que la sortie de stage (heures sup / retard sont autoporteurs).
-    $("sortie-details").hidden = selectedType() !== "Sortie de stage";
-  });
+  radio.addEventListener("change", syncTypeUI);
 }
 
 $("sortie-cancel-btn").addEventListener("click", () => dialog.close());
@@ -266,17 +287,15 @@ $("sortie-form").addEventListener("submit", async (e) => {
   errEl.hidden = true;
 
   const type = selectedType();
-  let motif = type;
+  // Le type reste dans Motif (la formule Grist déduit les retards en testant
+  // « RETARD ») ; la précision libre va dans Commentaire.
   let compte = true;
   if (type === "Retard") compte = false;
-  if (type === "Sortie de stage") {
-    compte = $("sortie-compte").checked;
-    const precision = $("sortie-motif-texte").value.trim();
-    if (precision) motif = precision; // motif libre saisi par l'étudiant
-  }
+  if (type === "Sortie de stage") compte = $("sortie-compte").checked;
 
   const body = {
-    Motif: motif,
+    Motif: type,
+    Commentaire: $("sortie-motif-texte").value.trim(),
     Date: $("sortie-date").value,
     Heure_debut: $("sortie-debut").value,
     Heure_fin: $("sortie-fin").value,
