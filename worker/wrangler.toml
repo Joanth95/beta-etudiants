@@ -10,9 +10,8 @@ GRIST_BASE_URL = "https://grist.numerique.gouv.fr/api"
 # (https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT)
 GRIST_DOC_ID = "qdm9zxQGmCPH"
 
-# Origine autorisée : mets l'URL de ton site GitHub Pages, par exemple
-# "https://toncompte.github.io" (ou "*" pendant les tests)
-ALLOWED_ORIGIN = "*"
+# Origine autorisée : seul le site GitHub Pages peut appeler ce proxy
+ALLOWED_ORIGIN = "https://joanth95.github.io"
 
 # La clé API Grist est un SECRET, ne jamais la mettre ici.
 # La définir avec :  npx wrangler secret put GRIST_API_KEY
