@@ -3,7 +3,6 @@
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-const MOTIF_AUTRE = "Autre motif…";
 
 const state = {
   code: sessionStorage.getItem("code") || null,
@@ -221,13 +220,13 @@ function renderWeeks() {
 
 const dialog = $("sortie-dialog");
 
+function selectedType() {
+  return document.querySelector('input[name="sortie-type"]:checked').value;
+}
+
 $("add-sortie-btn").addEventListener("click", () => {
-  const select = $("sortie-motif");
-  select.innerHTML = "";
-  for (const m of state.data.motifs) select.appendChild(new Option(m, m));
-  select.appendChild(new Option(MOTIF_AUTRE, MOTIF_AUTRE));
-  $("sortie-motif-autre-wrap").hidden = true;
-  $("sortie-motif-autre").value = "";
+  document.querySelector('input[name="sortie-type"][value="Rattrapage"]').checked = true;
+  $("sortie-compte-wrap").hidden = true;
   $("sortie-compte").checked = true;
   $("sortie-date").value = isoDate(new Date());
   $("sortie-debut").value = "";
@@ -236,9 +235,12 @@ $("add-sortie-btn").addEventListener("click", () => {
   dialog.showModal();
 });
 
-$("sortie-motif").addEventListener("change", () => {
-  $("sortie-motif-autre-wrap").hidden = $("sortie-motif").value !== MOTIF_AUTRE;
-});
+for (const radio of document.querySelectorAll('input[name="sortie-type"]')) {
+  radio.addEventListener("change", () => {
+    // La case « compte en temps de stage » ne concerne que la sortie de stage
+    $("sortie-compte-wrap").hidden = selectedType() !== "Sortie de stage";
+  });
+}
 
 $("sortie-cancel-btn").addEventListener("click", () => dialog.close());
 
@@ -247,17 +249,10 @@ $("sortie-form").addEventListener("submit", async (e) => {
   const errEl = $("sortie-error");
   errEl.hidden = true;
 
-  let motif = $("sortie-motif").value;
-  let compte = motif !== "Retard";
-  if (motif === MOTIF_AUTRE) {
-    motif = $("sortie-motif-autre").value.trim();
-    compte = $("sortie-compte").checked;
-    if (!motif) {
-      errEl.textContent = "Précisez le motif.";
-      errEl.hidden = false;
-      return;
-    }
-  }
+  const motif = selectedType();
+  let compte = true;
+  if (motif === "Retard") compte = false;
+  if (motif === "Sortie de stage") compte = $("sortie-compte").checked;
 
   const body = {
     Motif: motif,

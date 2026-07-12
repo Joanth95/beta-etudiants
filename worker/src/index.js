@@ -37,8 +37,12 @@ const DAY_COLUMNS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
 const CIVILITES = ["Madame", "Monsieur"];
 const FORMATIONS = ["AIDE SOIGNANT", "INFIRMIER", "AUTRE"];
 const NIVEAUX = ["L1", "L2", "L3", "M1", "M2", "Aide-Soignant"];
-// Motifs proposés à l'étudiant ; « Retard » est déduit par la formule Grist Ajustement_h
-const MOTIFS = ["Rattrapage", "Retard"];
+// Motifs proposés à l'étudiant ; « Retard » est déduit par la formule Grist
+// Ajustement_h ; « Sortie de stage » compte ou non selon la case Compte_stage
+const MOTIFS = ["Rattrapage", "Retard", "Sortie de stage"];
+
+// Nombre maximal de semaines générées automatiquement pour une période
+const MAX_SEMAINES_GENEREES = 30;
 
 export default {
   async fetch(request, env) {
@@ -333,7 +337,7 @@ async function inscription(request, env) {
     studentRowId = created.records[0].id;
   }
 
-  await grist(env, "POST", `/tables/${T_PERIODES}/records`, {
+  const createdPeriode = await grist(env, "POST", `/tables/${T_PERIODES}/records`, {
     records: [{
       fields: {
         Anonymat: studentRowId,
@@ -346,12 +350,36 @@ async function inscription(request, env) {
       },
     }],
   });
+  const periodeId = createdPeriode.records[0].id;
 
-  return json({ code, dejaInscrit }, 201);
+  // Génère une semaine de planning (vide) par semaine de stage,
+  // que le service remplira ensuite dans Grist.
+  const nbSemaines = await genererSemaines(env, periodeId, du, au);
+
+  return json({ code, dejaInscrit, semainesGenerees: nbSemaines }, 201);
 }
 
 function cleanText(value, max) {
   return String(value || "").trim().slice(0, max);
+}
+
+async function genererSemaines(env, periodeId, duIso, auIso) {
+  const DAY = 86400;
+  const du = Date.parse(duIso + "T00:00:00Z") / 1000;
+  const au = Date.parse(auIso + "T00:00:00Z") / 1000;
+  // Lundi de la semaine du début de stage (getUTCDay : lundi = 1)
+  const shift = (new Date(du * 1000).getUTCDay() + 6) % 7;
+  let monday = du - shift * DAY;
+
+  const records = [];
+  while (monday <= au && records.length < MAX_SEMAINES_GENEREES) {
+    records.push({ fields: { Periode: periodeId, Semaine_debut: monday } });
+    monday += 7 * DAY;
+  }
+  if (records.length) {
+    await grist(env, "POST", `/tables/${T_HEBDO}/records`, { records });
+  }
+  return records.length;
 }
 
 /* ------------------------------------------------------------------ */

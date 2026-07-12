@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Espace étudiant — Planning de stage</title>
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -50,7 +50,8 @@
           <h2>Mes déclarations d'heures</h2>
           <button id="add-sortie-btn" class="btn btn-primary">+ Déclarer</button>
         </div>
-        <p class="section-note">Rattrapage = heures ajoutées · Retard = heures déduites.
+        <p class="section-note">Heures supplémentaires = ajoutées · Retard = déduites ·
+          Sortie de stage = temps de formation, compté ou non selon la case.
           Le planning ci-dessous est établi par le service et ne se modifie pas ici.</p>
         <div id="sorties"></div>
       </section>
@@ -65,17 +66,30 @@
   <!-- Formulaire de déclaration -->
   <dialog id="sortie-dialog">
     <form id="sortie-form" method="dialog">
-      <h2>Déclarer des heures</h2>
+      <h2>Déclarer</h2>
 
-      <label for="sortie-motif">Motif</label>
-      <select id="sortie-motif"></select>
+      <div class="type-options" role="radiogroup" aria-label="Type de déclaration">
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Rattrapage" checked>
+          <span><strong>Heures supplémentaires</strong>
+            <small>Heures faites en plus du planning — ajoutées au compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Retard">
+          <span><strong>Retard</strong>
+            <small>Arrivée en retard — heures déduites du compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Sortie de stage">
+          <span><strong>Sortie de stage</strong>
+            <small>Temps organisé pour la formation (cours, regroupement…)</small></span>
+        </label>
+      </div>
 
-      <div id="sortie-motif-autre-wrap" hidden>
-        <label for="sortie-motif-autre">Précisez le motif</label>
-        <input type="text" id="sortie-motif-autre" maxlength="100" placeholder="Ex. : Récupération">
+      <div id="sortie-compte-wrap" hidden>
         <label class="checkbox-label">
           <input type="checkbox" id="sortie-compte" checked>
-          Ces heures comptent pour le stage
+          Ce temps compte en temps de stage
         </label>
       </div>
 
@@ -102,7 +116,7 @@
     </form>
   </dialog>
 
-  <script src="config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

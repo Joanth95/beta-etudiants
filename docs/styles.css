@@ -276,6 +276,28 @@ select {
   background: var(--blanc);
 }
 
+.type-options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.type-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  border: 1px solid var(--gris-bordure);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.type-option:has(input:checked) {
+  border-color: var(--bleu);
+  outline: 1px solid var(--bleu);
+  background: rgba(0, 0, 145, 0.03);
+}
+
+.type-option input { width: auto; margin-top: 0.2rem; }
+.type-option small { display: block; color: var(--texte-doux); }
+
 .checkbox-label {
   display: flex;
   align-items: center;
