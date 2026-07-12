@@ -40,7 +40,10 @@
       "Bash(curl -s -o /dev/null --max-time 10 https://espace-etudiant-api.joanth95.workers.dev/)",
       "Bash(curl -s -w \" [HTTP %{http_code}]\\\\n\" -X POST https://espace-etudiant-api.joanth95.workers.dev/api/login -H \"Content-Type: application/json\" -d '{\"code\":\"X999999X\"}')",
       "Bash(curl -s https://espace-etudiant-api.joanth95.workers.dev/api/services)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('cles:', list\\(d.keys\\(\\)\\)\\); print\\('motifs:', d['motifs']\\); print\\('nb sorties:', len\\(d['sorties']\\)\\); print\\('sortie[0]:', d['sorties'][0] if d['sorties'] else None\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('cles:', list\\(d.keys\\(\\)\\)\\); print\\('motifs:', d['motifs']\\); print\\('nb sorties:', len\\(d['sorties']\\)\\); print\\('sortie[0]:', d['sorties'][0] if d['sorties'] else None\\)\")",
+      "Bash(curl -s -w ' [HTTP %{http_code}]\\\\n' -X POST https://espace-etudiant-api.joanth95.workers.dev/api/inscription -H 'Content-Type: application/json' -d '{\"Civilite\":\"Monsieur\",\"NOM\":\"Zzztest\",\"PRENOM\":\"Test\",\"DDN\":\"2000-01-01\",\"FORMATION\":\"AUTRE\",\"Centre_de_formation\":\"TEST A SUPPRIMER\",\"Adresse_mail\":\"test@test.fr\",\"periode\":{\"Service\":317,\"Niveau\":\"L1\",\"Du\":\"2026-07-13\",\"Au\":\"2026-07-20\",\"Tuteur\":\"\"}}')",
+      "Bash(curl -s -X POST https://espace-etudiant-api.joanth95.workers.dev/api/login -H 'Content-Type: application/json' -d '{\"code\":\"T010100Z\"}')",
+      "Bash(curl -s https://joanth95.github.io/grist/entree-stage.html -o /dev/null -w \"%{http_code}\")"
     ]
   }
 }
