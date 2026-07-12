@@ -240,7 +240,8 @@ function selectedType() {
 
 $("add-sortie-btn").addEventListener("click", () => {
   document.querySelector('input[name="sortie-type"][value="Rattrapage"]').checked = true;
-  $("sortie-compte-wrap").hidden = true;
+  $("sortie-details").hidden = true;
+  $("sortie-motif-texte").value = "";
   $("sortie-compte").checked = true;
   $("sortie-date").value = isoDate(new Date());
   $("sortie-debut").value = "";
@@ -251,8 +252,9 @@ $("add-sortie-btn").addEventListener("click", () => {
 
 for (const radio of document.querySelectorAll('input[name="sortie-type"]')) {
   radio.addEventListener("change", () => {
-    // La case « compte en temps de stage » ne concerne que la sortie de stage
-    $("sortie-compte-wrap").hidden = selectedType() !== "Sortie de stage";
+    // Le motif libre et la case « compte en temps de stage » ne concernent
+    // que la sortie de stage (heures sup / retard sont autoporteurs).
+    $("sortie-details").hidden = selectedType() !== "Sortie de stage";
   });
 }
 
@@ -263,10 +265,15 @@ $("sortie-form").addEventListener("submit", async (e) => {
   const errEl = $("sortie-error");
   errEl.hidden = true;
 
-  const motif = selectedType();
+  const type = selectedType();
+  let motif = type;
   let compte = true;
-  if (motif === "Retard") compte = false;
-  if (motif === "Sortie de stage") compte = $("sortie-compte").checked;
+  if (type === "Retard") compte = false;
+  if (type === "Sortie de stage") {
+    compte = $("sortie-compte").checked;
+    const precision = $("sortie-motif-texte").value.trim();
+    if (precision) motif = precision; // motif libre saisi par l'étudiant
+  }
 
   const body = {
     Motif: motif,

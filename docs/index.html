@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Espace étudiant — Planning de stage</title>
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 
@@ -86,7 +86,10 @@
         </label>
       </div>
 
-      <div id="sortie-compte-wrap" hidden>
+      <div id="sortie-details" hidden>
+        <label for="sortie-motif-texte">Motif</label>
+        <input type="text" id="sortie-motif-texte" maxlength="100"
+               placeholder="Ex. : IFSI, AFGSU, regroupement…">
         <label class="checkbox-label">
           <input type="checkbox" id="sortie-compte" checked>
           Ce temps compte en temps de stage
@@ -116,7 +119,7 @@
     </form>
   </dialog>
 
-  <script src="config.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

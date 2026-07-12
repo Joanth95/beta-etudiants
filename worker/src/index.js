@@ -240,17 +240,43 @@ async function createSortie(request, env, student) {
   // comme heures de stage sauf refus explicite.
   const compteStage = motif.toUpperCase() === "RETARD" ? false : body.Compte_stage !== false;
 
+  const dateEpoch = Date.parse(date + "T00:00:00Z") / 1000;
+  const periodeId = await choisirPeriode(env, student, dateEpoch);
+
   const fields = {
     Anonymat: student.rowId,
     Code_anonymat: student.code,
     Motif: motif,
-    Date: Date.parse(date + "T00:00:00Z") / 1000,
+    Date: dateEpoch,
     Heure_debut: debut,
     Heure_fin: fin,
     Compte_stage: compteStage,
   };
+  // Rattache explicitement la déclaration à la période de stage, sinon la
+  // formule Grist ne peut pas la rapprocher (date hors de l'intervalle, etc.).
+  if (periodeId) fields.Rapprochement_manuel = periodeId;
+
   const data = await grist(env, "POST", `/tables/${T_SORTIES}/records`, { records: [{ fields }] });
   return json({ id: data.records[0].id }, 201);
+}
+
+/** Période à laquelle rattacher une déclaration datée de dateEpoch. */
+async function choisirPeriode(env, student, dateEpoch) {
+  const periodes = await gristFilter(env, T_PERIODES, { Code_anonymat: [student.code] });
+  if (!periodes.length) return null;
+  const DAY = 86400;
+  // 1. période dont l'intervalle Du..Au contient la date
+  const contient = periodes.find((p) => {
+    const du = p.fields.Du, au = p.fields.Au;
+    return typeof du === "number" && typeof au === "number" &&
+      dateEpoch >= du && dateEpoch <= au + DAY - 1;
+  });
+  if (contient) return contient.id;
+  // 2. période en cours
+  const enCours = periodes.find((p) => p.fields.En_cours);
+  if (enCours) return enCours.id;
+  // 3. la plus récente
+  return periodes.slice().sort((a, b) => (b.fields.Du || 0) - (a.fields.Du || 0))[0].id;
 }
 
 async function deleteSortie(env, student, rowId) {
