@@ -3,12 +3,15 @@
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 
+let services = []; // services accueillant des étudiants (avec cadre)
+
 async function init() {
   try {
     const res = await fetch(API + "/api/services");
     const ref = await res.json();
     if (!res.ok) throw new Error(ref.error || "Erreur de chargement");
 
+    services = ref.services;
     fillSelect("f-civilite", ref.civilites.map((c) => [c, c]));
     fillSelect("f-formation", ref.formations.map((f) => [f, f]));
     fillSelect("f-niveau", ref.niveaux.map((n) => [n, n]));
@@ -79,6 +82,7 @@ $("inscription-form").addEventListener("submit", async (e) => {
       $("success-message").textContent =
         "Vous étiez déjà connu du service : votre nouvelle période de stage a été ajoutée à votre dossier.";
     }
+    renderCadreContact(Number($("f-service").value));
   } catch (err) {
     errEl.textContent = err.message;
     errEl.hidden = false;
@@ -87,5 +91,35 @@ $("inscription-form").addEventListener("submit", async (e) => {
     btn.textContent = "Enregistrer mon entrée en stage";
   }
 });
+
+// Affiche la consigne de confirmation auprès du cadre du service choisi
+function renderCadreContact(serviceId) {
+  const box = $("cadre-contact");
+  if (!box) return;
+  const service = services.find((s) => s.id === serviceId);
+  const cadre = service && service.cadre;
+  if (!cadre || !cadre.nom) {
+    box.innerHTML =
+      "<strong>Important :</strong> contactez le cadre de votre service " +
+      "(par téléphone ou par mail) pour confirmer votre inscription.";
+    return;
+  }
+  let html = "<strong>Important :</strong> confirmez votre inscription auprès du " +
+    "cadre du service, par téléphone ou par mail :<br><strong>" + esc(cadre.nom) + "</strong>";
+  if (cadre.telephone) {
+    const tel = esc(cadre.telephone);
+    html += ' · <a href="tel:' + tel.replace(/\s/g, "") + '">☎ ' + tel + "</a>";
+  }
+  if (cadre.email) {
+    const mail = esc(cadre.email);
+    html += ' · <a href="mailto:' + mail + '">✉ ' + mail + "</a>";
+  }
+  box.innerHTML = html;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
 
 init();

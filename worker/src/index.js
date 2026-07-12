@@ -31,6 +31,7 @@ const T_HEBDO = "PLANNING_HEBDO";
 const T_CODES = "CODES_HORAIRES";
 const T_SERVICES = "SERVICES";
 const T_SORTIES = "Sortie_de_stage";
+const T_UTILISATEURS = "UTILISATEURS";
 
 const DAY_COLUMNS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
@@ -142,14 +143,16 @@ async function authenticateCode(env, rawCode) {
 /* ------------------------------------------------------------------ */
 
 async function buildPayload(env, student) {
-  const [periodes, services, codes, sorties] = await Promise.all([
+  const [periodes, services, codes, sorties, users] = await Promise.all([
     gristFilter(env, T_PERIODES, { Code_anonymat: [student.code] }),
     gristAll(env, T_SERVICES),
     gristAll(env, T_CODES),
     gristFilter(env, T_SORTIES, { Anonymat: [student.rowId] }),
+    gristAll(env, T_UTILISATEURS),
   ]);
 
-  const serviceName = new Map(services.map((s) => [s.id, s.fields.Nom || ""]));
+  const serviceById = new Map(services.map((s) => [s.id, s]));
+  const usersById = new Map(users.map((u) => [u.id, u]));
   const periodeIds = periodes.map((p) => p.id);
 
   const semaines = periodeIds.length
@@ -168,17 +171,19 @@ async function buildPayload(env, student) {
       const heuresBase = HEURES_PAR_SEMAINE * nombreSemaines(p.fields.Du, p.fields.Au);
       const aFaire = p.fields.A_FAIRE > 0 ? p.fields.A_FAIRE : heuresBase;
       const fait = p.fields.FAIT ?? 0;
+      const service = serviceById.get(p.fields.Service);
       return {
         id: p.id,
         Du: epochToIso(p.fields.Du),
         Au: epochToIso(p.fields.Au),
-        Service: serviceName.get(p.fields.Service) || "",
+        Service: (service && service.fields.Nom) || "",
         Niveau: p.fields.Niveau || "",
         En_cours: !!p.fields.En_cours,
         A_FAIRE: aFaire,
         FAIT: fait,
         Solde_heures: Math.round((fait - aFaire) * 100) / 100,
         Tuteur: p.fields.Tuteur || "",
+        cadre: cadreInfo(service, usersById),
       };
     }),
     semaines: semaines.map((s) => {
@@ -216,15 +221,33 @@ async function buildPayload(env, student) {
 }
 
 async function listServices(env) {
-  const services = await gristAll(env, T_SERVICES);
+  const [services, users] = await Promise.all([
+    gristAll(env, T_SERVICES),
+    gristAll(env, T_UTILISATEURS),
+  ]);
+  const usersById = new Map(users.map((u) => [u.id, u]));
   return json({
     services: services
       .filter((s) => s.fields.Recoit_des_etudiant)
-      .map((s) => ({ id: s.id, Nom: s.fields.Nom || "" })),
+      .map((s) => ({ id: s.id, Nom: s.fields.Nom || "", cadre: cadreInfo(s, usersById) })),
     civilites: CIVILITES,
     formations: FORMATIONS,
     niveaux: NIVEAUX,
   });
+}
+
+/** Coordonnées du cadre responsable d'un service (nom, email, téléphone). */
+function cadreInfo(service, usersById) {
+  const ref = service && service.fields.Cadre_ref;
+  const u = ref ? usersById.get(ref) : null;
+  if (!u) return null;
+  const nom = [u.fields.Civilite, u.fields.Nom, u.fields.Prenom]
+    .map((x) => (x || "").trim()).filter(Boolean).join(" ");
+  return {
+    nom,
+    email: u.fields.Email || "",
+    telephone: u.fields.Telephone || "",
+  };
 }
 
 /* ------------------------------------------------------------------ */

@@ -121,7 +121,29 @@ function renderPeriode() {
     }
     card.appendChild(stats);
   }
+
+  if (p.cadre && p.cadre.nom) {
+    card.appendChild(renderCadre(p.cadre));
+  }
   container.appendChild(card);
+}
+
+/** Bloc coordonnées du cadre du service (nom, email, téléphone). */
+function renderCadre(cadre) {
+  const wrap = el("div", "periode-cadre");
+  wrap.appendChild(el("span", "cadre-label", "Cadre du service : "));
+  wrap.appendChild(el("strong", "", cadre.nom));
+  if (cadre.telephone) {
+    const a = el("a", "cadre-link", `☎ ${cadre.telephone}`);
+    a.href = "tel:" + cadre.telephone.replace(/\s/g, "");
+    wrap.append(document.createTextNode(" · "), a);
+  }
+  if (cadre.email) {
+    const a = el("a", "cadre-link", `✉ ${cadre.email}`);
+    a.href = "mailto:" + cadre.email;
+    wrap.append(document.createTextNode(" · "), a);
+  }
+  return wrap;
 }
 
 /* ---------- Déclarations (sorties de stage) ---------- */
