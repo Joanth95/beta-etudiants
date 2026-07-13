@@ -50,11 +50,18 @@
 </header>
 <div class="content">
   <div class="controls no-print">
-    <label>Mois</label>
+    <label>Service</label>
+    <select id="service" style="min-width: 260px;"></select>
+    <label>Mois / Début</label>
     <input type="date" id="startDate">
+    <label>Vue</label>
+    <select id="viewMode" style="min-width: 145px;">
+      <option value="month">Mois complet</option>
+      <option value="31days">31 jours glissants</option>
+    </select>
     <button id="today" class="btn btn-ghost">Aujourd'hui</button>
-    <button id="prev" class="btn btn-ghost">◀ Mois préc.</button>
-    <button id="next" class="btn btn-ghost">Mois suiv. ▶</button>
+    <button id="prev" class="btn btn-ghost">◀ Préc.</button>
+    <button id="next" class="btn btn-ghost">Suiv. ▶</button>
     <button id="refresh" class="btn btn-primary">Actualiser</button>
     <button id="printBtn" class="btn btn-primary">🖨️ Imprimer</button>
   </div>
@@ -197,20 +204,31 @@ function render() {
   const content = document.getElementById('content');
 
   if (!startKey || !serviceId) {
-    content.innerHTML = '<div class="empty">Sélectionnez un service et un mois.</div>';
+    content.innerHTML = '<div class="empty">Sélectionnez un service et une période.</div>';
     return;
   }
 
-  // === Calcul du mois complet ===
-  const monthRange = getMonthRange(startKey);
-  const windowStart = monthRange.startKey;
-  const windowEnd = monthRange.endKey;
+  const viewMode = document.getElementById('viewMode') ? document.getElementById('viewMode').value : 'month';
 
-  const days = [];
-  let currentDay = windowStart;
-  for (let i = 0; i < monthRange.numDays; i++) {
-    days.push(currentDay);
-    currentDay = addDaysKey(currentDay, 1);
+  let windowStart, windowEnd, days = [];
+
+  if (viewMode === '31days') {
+    // Mode 31 jours glissants (comportement original)
+    windowStart = startKey;
+    for (let i = 0; i < 31; i++) {
+      days.push(addDaysKey(startKey, i));
+    }
+    windowEnd = days[30];
+  } else {
+    // Mode Mois complet
+    const monthRange = getMonthRange(startKey);
+    windowStart = monthRange.startKey;
+    windowEnd = monthRange.endKey;
+    let currentDay = windowStart;
+    for (let i = 0; i < monthRange.numDays; i++) {
+      days.push(currentDay);
+      currentDay = addDaysKey(currentDay, 1);
+    }
   }
 
   const codesMap = buildCodesMap();
@@ -329,7 +347,9 @@ function render() {
   const serviceLabel = serviceSelect && serviceSelect.selectedOptions[0] ? serviceSelect.selectedOptions[0].textContent : '';
   const now = new Date();
   const genDate = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear() + ' à ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('printHeader').innerHTML = `<h1>Planning de service — ${serviceLabel}</h1><p class="subtitle">Mois complet : du ${fmtDayLabel(windowStart).num} au ${fmtDayLabel(windowEnd).num} • Généré le ${genDate}</p>`;
+  const currentViewMode = document.getElementById('viewMode') ? document.getElementById('viewMode').value : 'month';
+  const periodLabel = (currentViewMode === '31days') ? 'Période 31 jours' : 'Mois complet';
+  document.getElementById('printHeader').innerHTML = `<h1>Planning de service — ${serviceLabel}</h1><p class="subtitle">${periodLabel} : du ${fmtDayLabel(windowStart).num} au ${fmtDayLabel(windowEnd).num} • Généré le ${genDate}</p>`;
 }
 
 function codesListSorted() {
@@ -412,44 +432,51 @@ document.getElementById('content').addEventListener('click', function (e) {
   startEditCell(td);
 });
 
-// === NOUVEAU : navigation par mois ===
-function goToMonth(deltaMonths) {
+// === Navigation intelligente selon le mode de vue ===
+function shiftWindow(delta) {
+  const viewMode = document.getElementById('viewMode') ? document.getElementById('viewMode').value : 'month';
   let cur = document.getElementById('startDate').value;
   if (!cur) cur = todayKey();
   const d = keyToDate(cur);
-  d.setUTCMonth(d.getUTCMonth() + deltaMonths);
-  d.setUTCDate(1); // on se place au 1er du mois pour plus de clarté
+
+  if (viewMode === '31days') {
+    // Décalage de 31 jours
+    d.setUTCDate(d.getUTCDate() + (delta * 31));
+  } else {
+    // Mois complet : on passe au mois suivant/précédent (au 1er)
+    d.setUTCMonth(d.getUTCMonth() + delta);
+    d.setUTCDate(1);
+  }
   document.getElementById('startDate').value = dateToKey(d);
   render();
 }
 
 document.getElementById('startDate').addEventListener('change', render);
+document.getElementById('service').addEventListener('change', render);
+document.getElementById('viewMode').addEventListener('change', () => {
+  // Optionnel : on peut recentrer sur le 1er du mois quand on passe en mode mois
+  const mode = document.getElementById('viewMode').value;
+  if (mode === 'month') {
+    let cur = document.getElementById('startDate').value;
+    if (cur) {
+      const d = keyToDate(cur);
+      d.setUTCDate(1);
+      document.getElementById('startDate').value = dateToKey(d);
+    }
+  }
+  render();
+});
+
 document.getElementById('today').addEventListener('click', () => {
   document.getElementById('startDate').value = todayKey();
   render();
 });
-document.getElementById('prev').addEventListener('click', () => goToMonth(-1));
-document.getElementById('next').addEventListener('click', () => goToMonth(1));
+document.getElementById('prev').addEventListener('click', () => shiftWindow(-1));
+document.getElementById('next').addEventListener('click', () => shiftWindow(1));
 document.getElementById('refresh').addEventListener('click', async () => { await loadData(); render(); });
 document.getElementById('printBtn').addEventListener('click', () => { window.print(); });
 
 async function init() {
-  // On ajoute dynamiquement le select Service s'il n'existe pas encore (sécurité)
-  let serviceSelect = document.getElementById('service');
-  if (!serviceSelect) {
-    const controls = document.querySelector('.controls');
-    if (controls) {
-      const label = document.createElement('label');
-      label.textContent = 'Service';
-      serviceSelect = document.createElement('select');
-      serviceSelect.id = 'service';
-      serviceSelect.style.minWidth = '260px';
-      controls.insertBefore(serviceSelect, controls.firstChild);
-      controls.insertBefore(label, serviceSelect);
-      serviceSelect.addEventListener('change', render);
-    }
-  }
-
   await loadData();
   const items = populateServiceSelect();
 
@@ -458,8 +485,9 @@ async function init() {
 
   const monthRange = getMonthRange(sk);
   const defaultService = pickDefaultService(items, monthRange.startKey, monthRange.endKey);
-  if (defaultService && document.getElementById('service')) {
-    document.getElementById('service').value = defaultService;
+  const serviceEl = document.getElementById('service');
+  if (defaultService && serviceEl) {
+    serviceEl.value = defaultService;
   }
 
   render();
@@ -469,4 +497,3 @@ init();
 </script>
 </body>
 </html>
-
