@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Planning de service</title>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
   :root { --accent: #000091; }
@@ -12,41 +12,32 @@
   .controls { background: var(--blanc); padding: 1.25rem; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
   .controls label { font-weight: 600; color: var(--texte); }
   select, input[type="date"] { padding: 0.65rem 0.9rem; border: 1px solid var(--gris-bordure); border-radius: 4px; }
+
   .tablewrap { background: var(--blanc); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
-  table { font-size: 0.92rem; width: 100%; border-collapse: collapse; }
-  th, td { padding: 9px 6px; border-bottom: 1px solid var(--gris-bordure); border-right: 1px solid var(--gris-bordure); text-align: center; }
-  th.student, td.student { position: sticky; left: 0; background: var(--blanc); text-align: left; z-index: 3; min-width: 230px; }
-  .student-name { font-weight: 600; font-size: 1.02rem; }
-  .student-info { font-size: 0.82rem; color: var(--texte-doux); margin-top: 4px; line-height: 1.35; }
-  thead th { background: #f6f6f6; position: sticky; top: 0; z-index: 2; font-weight: 700; color: var(--bleu); }
-  th.weekend { background: #fff3e0 !important; }
-  td.hors-periode { background: #f6f6f6 !important; color: #888; }
-  td.repos { color: #555; font-weight: 600; }
-  td.editable:hover { background: #eaf2fb; outline: 2px solid var(--bleu); outline-offset: -2px; }
-  .badge { font-size: 0.82rem; padding: 2px 7px; }
+  table { font-size: 0.9rem; width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 8px 6px; text-align: center; }
+  th.student, td.student { position: sticky; left: 0; background: #f6f6f6; min-width: 220px; text-align: left; z-index: 3; font-weight: 700; }
+  thead th { background: #f0f0f0; position: sticky; top: 0; z-index: 2; font-weight: 700; color: var(--bleu); }
+  th.weekend { background: #fff3e0; }
+  td.hors-periode { background: #f8f8f8; color: #aaa; }
 
-  .legend { background: var(--blanc); padding: 1.25rem; border-radius: var(--radius); margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1.2rem; font-size: 0.9rem; }
-
-  /* === PRINT AMÉLIORÉ === */
   @media print {
-    body { background: white; padding: 10mm; font-family: "Marianne", Arial, sans-serif; }
+    body { padding: 12mm; background: white; font-family: "Marianne", Arial, sans-serif; }
     .app-header, .controls, #status, .no-print { display: none !important; }
-    h1 { font-size: 18pt; margin-bottom: 8px; }
-    .subtitle { font-size: 11pt; color: #444; margin-bottom: 20px; }
-    .tablewrap { margin: 15px 0; border: 1px solid #333; }
-    table { font-size: 9.5pt; width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #666; padding: 5px 4px; text-align: center; vertical-align: middle; }
-    th.student, td.student { min-width: 180px; text-align: left; background: #f0f0f0; font-weight: 600; }
-    thead th { background: #e5e5e5; color: #000091; font-weight: 700; }
+    h1 { font-size: 20pt; margin-bottom: 10px; color: #000091; }
+    .subtitle { font-size: 12pt; color: #333; margin-bottom: 25px; }
+    .tablewrap { margin: 20px 0; border: 2px solid #333; }
+    table { font-size: 9.8pt; border-collapse: collapse; }
+    th, td { border: 1px solid #555; padding: 6px 4px; }
+    th.student, td.student { min-width: 170px; background: #e5e5e5; text-align: left; font-weight: 700; }
+    thead th { background: #d0d0d0; color: #000091; }
     th.weekend { background: #fff3e0 !important; }
-    td.hors-periode { background: #f6f6f6 !important; color: #888; }
-    .student-info { font-size: 8pt; }
-    .badge { font-size: 8pt; padding: 1px 5px; border: 1px solid #888; }
-    .legend { margin-top: 25px; font-size: 9pt; display: flex; flex-wrap: wrap; gap: 15px; }
+    td.hors-periode { background: #f6f6f6 !important; }
+    .legend { margin-top: 30px; font-size: 9.5pt; }
     .print-footer { 
-      position: fixed; bottom: 8mm; left: 0; right: 0; 
-      text-align: center; font-size: 8pt; color: #555; 
-      border-top: 1px solid #ccc; padding-top: 6px; 
+      position: fixed; bottom: 10mm; left: 0; right: 0; 
+      text-align: center; font-size: 8.5pt; color: #555; 
+      border-top: 1px solid #ccc; padding-top: 8px; 
     }
     @page { size: landscape; margin: 8mm; }
   }
@@ -129,9 +120,7 @@ function populateServiceSelect() {
   const items = [];
   for (let i = 0; i < SERVICES.id.length; i++) {
     const nom = SERVICES.Nom[i] || ('Service ' + SERVICES.id[i]);
-    if (SERVICES.Recoit_des_etudiant[i] !== false) {
-      items.push({ id: SERVICES.id[i], nom });
-    }
+    if (SERVICES.Recoit_des_etudiant[i] !== false) items.push({ id: SERVICES.id[i], nom });
   }
   items.sort((a,b) => a.nom.localeCompare(b.nom));
   sel.innerHTML = items.length ? items.map(it => `<option value="${it.id}">${it.nom}</option>`).join('') : '<option value="">Aucun service disponible</option>';
