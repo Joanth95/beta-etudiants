@@ -155,7 +155,7 @@ function renderPeriode() {
         p.Solde_heures >= 0 ? "ok" : "warn"));
     }
     if (p.Recuperation > 0) {
-      stats.appendChild(badge(`${p.Recuperation} jour${p.Recuperation > 1 ? "s" : ""} de récupération`, "ok"));
+      stats.appendChild(badge(`${p.Recuperation} jour${p.Recuperation > 1 ? "s" : ""} de récupération à poser`, "ok"));
     }
     card.appendChild(stats);
   }
@@ -287,10 +287,12 @@ function renderWeeks() {
       const info = (week.jours && week.jours[i]) || { heures: 0, ferie: false };
       const cell = el("div", "day-cell readonly"
         + (dayIso === todayIso ? " today" : "")
-        + (info.ferie ? " ferie" : ""));
+        + (info.ferie ? " ferie" : "")
+        + (info.recup ? " recup" : ""));
 
       const label = el("div", "day-label", `${day.slice(0, 3)}. ${dayNum(dayIso)}`);
       if (info.ferie) label.appendChild(el("span", "ferie-tag", "férié"));
+      if (info.recup) label.appendChild(el("span", "recup-tag", "récup férié"));
       cell.appendChild(label);
 
       const chip = el("div", "day-chip", code ? code.Code : "—");

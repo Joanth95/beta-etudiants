@@ -174,17 +174,24 @@ async function buildPayload(env, student) {
     ? await gristFilter(env, T_HEBDO, { Periode: periodeIds })
     : [];
 
-  // Heures par jour de chaque semaine + jours de récupération acquis par période
-  // (un férié travaillé, càd férié avec heures > 0, ouvre un jour de récupération).
+  // Heures par jour de chaque semaine + jours de récupération par période :
+  // un férié travaillé (heures > 0) ouvre un jour de récupération ; poser un
+  // jour au code RF (récupération de férié) le consomme.
   const feriesIso = [...feriesSet];
   const recuperationByPeriode = {};
   const semainesData = semaines.map((s) => {
     const debut = s.fields.Semaine_debut;
     const jours = DAY_COLUMNS.map((d, i) => {
+      const codeRec = codesById.get(s.fields[d]);
       const iso = debut ? epochToIso(debut + i * 86400) : null;
-      const info = jourInfo(codesById.get(s.fields[d]), iso, s.fields.Periode, sortiesByJour, feriesSet);
+      const info = jourInfo(codeRec, iso, s.fields.Periode, sortiesByJour, feriesSet);
+      const per = s.fields.Periode;
       if (info.ferie && info.heures > 0) {
-        recuperationByPeriode[s.fields.Periode] = (recuperationByPeriode[s.fields.Periode] || 0) + 1;
+        recuperationByPeriode[per] = (recuperationByPeriode[per] || 0) + 1;
+      }
+      if (codeRec && (codeRec.fields.Code || "").trim().toUpperCase() === "RF") {
+        recuperationByPeriode[per] = (recuperationByPeriode[per] || 0) - 1;
+        info.recup = true;
       }
       return info;
     });
@@ -215,7 +222,7 @@ async function buildPayload(env, student) {
         A_FAIRE: aFaire,
         FAIT: fait,
         Solde_heures: Math.round((fait - aFaire) * 100) / 100,
-        Recuperation: recuperationByPeriode[p.id] || 0,
+        Recuperation: Math.max(0, recuperationByPeriode[p.id] || 0),
         Tuteur: p.fields.Tuteur || "",
         cadre: cadreInfo(service, usersById),
       };
