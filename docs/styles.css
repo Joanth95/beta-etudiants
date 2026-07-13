@@ -257,7 +257,21 @@ input:focus, textarea:focus, button:focus-visible {
   margin-top: 0.2rem;
 }
 
-.day-hours { font-size: 0.7rem; color: var(--texte-doux); }
+.day-hours { font-size: 0.72rem; color: var(--texte-doux); font-weight: 600; }
+
+.day-cell.ferie {
+  background: #fff3e0;
+  outline: 1px solid #ffd9a0;
+}
+.ferie-tag {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #b34000;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.day-cell.ferie .day-hours { color: #b34000; }
 
 .week-comment {
   margin: 0.6rem 0 0;

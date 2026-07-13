@@ -32,6 +32,7 @@ const T_CODES = "CODES_HORAIRES";
 const T_SERVICES = "SERVICES";
 const T_SORTIES = "Sortie_de_stage";
 const T_UTILISATEURS = "UTILISATEURS";
+const T_FERIES = "JOURS_FERIES";
 
 const DAY_COLUMNS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
@@ -143,17 +144,31 @@ async function authenticateCode(env, rawCode) {
 /* ------------------------------------------------------------------ */
 
 async function buildPayload(env, student) {
-  const [periodes, services, codes, sorties, users] = await Promise.all([
+  const [periodes, services, codes, sorties, users, feries] = await Promise.all([
     gristFilter(env, T_PERIODES, { Code_anonymat: [student.code] }),
     gristAll(env, T_SERVICES),
     gristAll(env, T_CODES),
     gristFilter(env, T_SORTIES, { Anonymat: [student.rowId] }),
     gristAll(env, T_UTILISATEURS),
+    gristAll(env, T_FERIES),
   ]);
 
   const serviceById = new Map(services.map((s) => [s.id, s]));
   const usersById = new Map(users.map((u) => [u.id, u]));
+  const codesById = new Map(codes.map((c) => [c.id, c]));
   const periodeIds = periodes.map((p) => p.id);
+
+  // Jours fériés (dates ISO) et ajustements des sorties par jour de période
+  const feriesSet = new Set(feries.map((f) => epochToIso(f.fields.Date)).filter(Boolean));
+  const sortiesByJour = new Map();
+  for (const s of sorties) {
+    const per = s.fields.Pour_le_stage_du_ || s.fields.Rapprochement_manuel;
+    const iso = epochToIso(s.fields.Date);
+    if (per && iso) {
+      const key = per + "|" + iso;
+      sortiesByJour.set(key, (sortiesByJour.get(key) || 0) + (s.fields.Ajustement_h || 0));
+    }
+  }
 
   const semaines = periodeIds.length
     ? await gristFilter(env, T_HEBDO, { Periode: periodeIds })
@@ -194,7 +209,14 @@ async function buildPayload(env, student) {
         Commentaire: s.fields.Commentaire || "",
         Total_h_semaine: s.fields.Total_h_semaine ?? null,
       };
-      for (const d of DAY_COLUMNS) out[d] = s.fields[d] || 0;
+      // Heures comptabilisées par jour (même calcul que la formule Grist :
+      // code + ajustement sortie, doublé si jour férié travaillé).
+      const debut = s.fields.Semaine_debut;
+      out.jours = DAY_COLUMNS.map((d, i) => {
+        out[d] = s.fields[d] || 0;
+        const iso = debut ? epochToIso(debut + i * 86400) : null;
+        return jourInfo(codesById.get(s.fields[d]), iso, s.fields.Periode, sortiesByJour, feriesSet);
+      });
       return out;
     }),
     codes: codes.map((c) => ({
@@ -235,6 +257,18 @@ async function listServices(env) {
     formations: FORMATIONS,
     niveaux: NIVEAUX,
   });
+}
+
+/** Heures comptabilisées un jour donné (réplique la formule Grist Total_h_semaine). */
+function jourInfo(codeRec, dateIso, periodeId, sortiesByJour, feriesSet) {
+  const ferie = dateIso ? feriesSet.has(dateIso) : false;
+  let h = 0;
+  if (codeRec && codeRec.fields.Compte_stage) {
+    h = (codeRec.fields.Duree_heures || 0) + (codeRec.fields.Ajustement_h || 0);
+  }
+  if (dateIso && periodeId) h += sortiesByJour.get(periodeId + "|" + dateIso) || 0;
+  if (h > 0 && ferie) h = h * 2; // jour férié travaillé = compté double
+  return { heures: Math.round(h * 100) / 100, ferie };
 }
 
 /** Coordonnées du cadre responsable d'un service (nom, email, téléphone). */

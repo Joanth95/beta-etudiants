@@ -148,10 +148,10 @@ function renderPeriode() {
   if (p.A_FAIRE != null) {
     const fait = p.FAIT ?? 0;
     const stats = el("div", "periode-stats");
-    stats.appendChild(badge(`${fait} h effectuées`, "ok"));
-    stats.appendChild(badge(`${p.A_FAIRE} h à réaliser`, ""));
+    stats.appendChild(badge(`${formatH(fait)} effectuées`, "ok"));
+    stats.appendChild(badge(`${formatH(p.A_FAIRE)} à réaliser`, ""));
     if (p.Solde_heures != null) {
-      stats.appendChild(badge(`Solde : ${p.Solde_heures > 0 ? "+" : ""}${p.Solde_heures} h`,
+      stats.appendChild(badge(`Solde : ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`,
         p.Solde_heures >= 0 ? "ok" : "warn"));
     }
     card.appendChild(stats);
@@ -206,7 +206,7 @@ function renderSorties() {
     // Heures affichées : réelles si validé, prévues sinon
     const adj = s.Valide ? s.Ajustement_h : expectedAdjustment(s);
     const sign = adj > 0 ? "+" : "";
-    const badgeEl = badge(`${sign}${adj} h`,
+    const badgeEl = badge(`${sign}${formatH(adj)}`,
       s.Valide ? (adj > 0 ? "ok" : (adj < 0 ? "warn" : "")) : "");
     badgeEl.classList.add("sortie-hours");
 
@@ -273,7 +273,7 @@ function renderWeeks() {
     const header = el("div", "week-header");
     header.appendChild(el("h3", "", `Semaine du ${frDate(week.Semaine_debut)}`));
     if (week.Total_h_semaine != null) {
-      header.appendChild(el("span", "week-total", `${week.Total_h_semaine} h`));
+      header.appendChild(el("span", "week-total", formatH(week.Total_h_semaine)));
     }
     card.appendChild(header);
 
@@ -281,16 +281,25 @@ function renderWeeks() {
     DAYS.forEach((day, i) => {
       const dayIso = addDaysIso(week.Semaine_debut, i);
       const code = codeById.get(week[day]);
-      const cell = el("div", "day-cell readonly" + (dayIso === todayIso ? " today" : ""));
-      cell.appendChild(el("div", "day-label", `${day.slice(0, 3)}. ${dayNum(dayIso)}`));
+      const info = (week.jours && week.jours[i]) || { heures: 0, ferie: false };
+      const cell = el("div", "day-cell readonly"
+        + (dayIso === todayIso ? " today" : "")
+        + (info.ferie ? " ferie" : ""));
+
+      const label = el("div", "day-label", `${day.slice(0, 3)}. ${dayNum(dayIso)}`);
+      if (info.ferie) label.appendChild(el("span", "ferie-tag", "férié"));
+      cell.appendChild(label);
+
       const chip = el("div", "day-chip", code ? code.Code : "—");
-      if (code && code.Heure_debut && code.Heure_fin) {
-        chip.title = `${code.Libelle} (${code.Heure_debut}–${code.Heure_fin})`;
+      if (code) chip.title = code.Libelle + (code.Heure_debut && code.Heure_fin ? ` (${code.Heure_debut}–${code.Heure_fin})` : "");
+      cell.appendChild(chip);
+
+      if (info.heures > 0) {
+        const h = el("div", "day-hours", formatH(info.heures) + (info.ferie ? " ×2" : ""));
+        cell.appendChild(h);
+      } else if (code && code.Heure_debut && code.Heure_fin) {
         cell.appendChild(el("div", "day-hours", `${code.Heure_debut}–${code.Heure_fin}`));
-      } else if (code) {
-        chip.title = code.Libelle;
       }
-      cell.insertBefore(chip, cell.children[1] || null);
       grid.appendChild(cell);
     });
     card.appendChild(grid);
@@ -424,6 +433,16 @@ function shortDate(iso) {
   return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", {
     day: "numeric", month: "short", year: "2-digit",
   });
+}
+
+// Convertit un nombre d'heures décimal en format « 7h30 » (et non 7,5 h)
+function formatH(hours) {
+  if (hours == null) return "0h";
+  const neg = hours < 0;
+  const totalMin = Math.round(Math.abs(hours) * 60);
+  const hh = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  return (neg ? "-" : "") + hh + "h" + (mm ? String(mm).padStart(2, "0") : "");
 }
 
 /* ------------------------------------------------------------------ */
