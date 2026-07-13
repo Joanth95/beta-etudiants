@@ -3,124 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <title>Planning de service</title>
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="styles.css?v=13">
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
-  /* Styles spécifiques au planning (ajustements sur le DSFR) */
-  :root {
-    --accent: #000091;
-  }
-  
+  :root { --accent: #000091; }
   body { background: var(--gris-fond); padding: 0; }
-  
-  .app-header {
-    border-bottom: 4px solid var(--bleu);
-  }
-  
-  .controls {
-    background: var(--blanc);
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: center;
-  }
-  
-  .controls label {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--texte);
-    margin-bottom: 0;
-  }
-  
-  select, input[type="date"] {
-    padding: 0.6rem 0.9rem;
-    border: 1px solid var(--gris-bordure);
-    border-radius: 4px;
-    font-size: 0.95rem;
-  }
-  
-  .tablewrap {
-    background: var(--blanc);
-    border-radius: var(--radius);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    overflow: hidden;
-  }
-  
-  table {
-    font-size: 0.9rem;
-    border-collapse: collapse;
-    width: 100%;
-  }
-  
-  th, td {
-    padding: 8px 6px;
-    text-align: center;
-    border-bottom: 1px solid var(--gris-bordure);
-    border-right: 1px solid var(--gris-bordure);
-  }
-  
-  th.student, td.student {
-    position: sticky;
-    left: 0;
-    background: var(--blanc);
-    text-align: left;
-    z-index: 3;
-    min-width: 220px;
-    font-weight: 600;
-  }
-  
-  .student-name { font-size: 1rem; }
-  .student-info { font-size: 0.8rem; color: var(--texte-doux); margin-top: 4px; line-height: 1.3; }
-  
-  thead th {
-    background: #f6f6f6;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    font-weight: 700;
-    color: var(--texte);
-  }
-  
+  .app-header { background: var(--blanc); border-bottom: 4px solid var(--bleu); padding: 1rem 1.25rem; }
+  .controls { background: var(--blanc); padding: 1.25rem; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  .controls label { font-weight: 600; color: var(--texte); }
+  select, input[type="date"] { padding: 0.65rem 0.9rem; border: 1px solid var(--gris-bordure); border-radius: 4px; }
+  .tablewrap { background: var(--blanc); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
+  table { font-size: 0.92rem; width: 100%; border-collapse: collapse; }
+  th, td { padding: 9px 6px; border-bottom: 1px solid var(--gris-bordure); border-right: 1px solid var(--gris-bordure); text-align: center; }
+  th.student, td.student { position: sticky; left: 0; background: var(--blanc); text-align: left; z-index: 3; min-width: 230px; }
+  .student-name { font-weight: 600; font-size: 1.02rem; }
+  .student-info { font-size: 0.82rem; color: var(--texte-doux); margin-top: 4px; line-height: 1.35; }
+  thead th { background: #f6f6f6; position: sticky; top: 0; z-index: 2; font-weight: 700; color: var(--bleu); }
   th.weekend { background: #fff3e0 !important; }
-  td.hors-periode { background: #f6f6f6; color: #999; }
-  td.repos { color: #666; font-weight: 600; }
-  
-  td.editable {
-    cursor: pointer;
-    transition: background 0.1s;
-  }
-  td.editable:hover {
-    background: #eaf2fb;
-    outline: 2px solid var(--bleu);
-    outline-offset: -2px;
-  }
-  
-  .badge {
-    font-size: 0.8rem;
-    padding: 2px 7px;
-  }
-  
-  .legend {
-    background: var(--blanc);
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius);
-    margin-top: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.9rem;
-  }
-  
+  td.hors-periode { background: #f6f6f6 !important; color: #888; }
+  td.repos { color: #555; font-weight: 600; }
+  td.editable:hover { background: #eaf2fb; outline: 2px solid var(--bleu); outline-offset: -2px; }
+  .badge { font-size: 0.82rem; padding: 2px 7px; }
+  .legend { background: var(--blanc); padding: 1.25rem; border-radius: var(--radius); margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1.2rem; font-size: 0.9rem; }
+
   @media print {
-    body { background: white; padding: 0; }
-    .controls, .no-print { display: none !important; }
-    .tablewrap { box-shadow: none; }
-    table { font-size: 10px; }
-    th, td { padding: 4px 3px; }
+    body { background: white; padding: 12mm; }
+    .app-header, .controls, #status, .no-print { display: none !important; }
+    h1 { font-size: 18pt; }
+    .subtitle { font-size: 11pt; color: #444; }
+    .tablewrap { box-shadow: none; border: 1px solid #ccc; }
+    table { font-size: 9.8pt; }
+    th, td { padding: 6px 5px; border: 1px solid #999; }
+    .legend { font-size: 9pt; }
+    .print-footer { position: fixed; bottom: 10mm; left: 0; right: 0; text-align: center; font-size: 8.5pt; color: #555; border-top: 1px solid #ccc; padding-top: 8px; }
+    @page { size: landscape; margin: 10mm; }
   }
 </style>
 </head>
@@ -136,11 +52,9 @@
 <div class="content">
   <div class="controls no-print">
     <label>Service</label>
-    <select id="service"></select>
-    
+    <select id="service" style="min-width: 260px;"></select>
     <label>Début</label>
     <input type="date" id="startDate">
-    
     <button id="today" class="btn btn-ghost">Aujourd'hui</button>
     <button id="prev" class="btn btn-ghost">◀ 31 jours</button>
     <button id="next" class="btn btn-ghost">31 jours ▶</button>
@@ -148,7 +62,7 @@
     <button id="printBtn" class="btn btn-primary">🖨️ Imprimer</button>
   </div>
 
-  <div id="status"></div>
+  <div id="status" style="margin: 10px 0; color: var(--bleu);"></div>
   <div class="print-header" id="printHeader"></div>
   <div id="content"></div>
 
@@ -158,15 +72,303 @@
 </div>
 
 <script>
-// === Ton code JavaScript original (inchangé) ===
 grist.ready({requiredAccess: 'full'});
 
 const DAY_NAMES = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 const WINDOW_LEN = 31;
-
 let SERVICES = null, PERIODES = null, ETUDIANTS = null, PLANNING = null, CODES = null, SORTIES = null;
 
-// ... (le reste de ton script JS est identique, je ne le recopie pas ici pour gagner de la place)
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function keyToDate(key) { return new Date(key + 'T00:00:00Z'); }
+function dateToKey(d) { return d.toISOString().slice(0,10); }
+function addDaysKey(key, n) { const d = keyToDate(key); d.setUTCDate(d.getUTCDate()+n); return dateToKey(d); }
+function epochToKey(epoch) { if (epoch == null) return null; return dateToKey(new Date(epoch*1000)); }
+function fmtDateFull(key) {
+  const d = keyToDate(key);
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  return dd + '/' + mm + '/' + d.getUTCFullYear();
+}
+function fmtDayLabel(key) {
+  const d = keyToDate(key);
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  return { num: dd + '/' + mm, name: DAY_NAMES[d.getUTCDay()], isWeekend: (d.getUTCDay() === 0 || d.getUTCDay() === 6) };
+}
+
+async function loadData() {
+  document.getElementById('status').textContent = 'Chargement des données...';
+  [SERVICES, PERIODES, ETUDIANTS, PLANNING, CODES, SORTIES] = await Promise.all([
+    grist.docApi.fetchTable('SERVICES'),
+    grist.docApi.fetchTable('PERIODES_DE_STAGE'),
+    grist.docApi.fetchTable('LISTE_DES_ETUDIANTS'),
+    grist.docApi.fetchTable('PLANNING_HEBDO'),
+    grist.docApi.fetchTable('CODES_HORAIRES'),
+    grist.docApi.fetchTable('Sortie_de_stage')
+  ]);
+  document.getElementById('status').textContent = '';
+}
+
+function populateServiceSelect() {
+  const sel = document.getElementById('service');
+  const items = [];
+  for (let i = 0; i < SERVICES.id.length; i++) {
+    const nom = SERVICES.Nom[i] || ('Service ' + SERVICES.id[i]);
+    if (SERVICES.Recoit_des_etudiant[i] !== false) {
+      items.push({ id: SERVICES.id[i], nom });
+    }
+  }
+  items.sort((a,b) => a.nom.localeCompare(b.nom));
+  sel.innerHTML = items.length ? items.map(it => `<option value="${it.id}">${it.nom}</option>`).join('') : '<option value="">Aucun service disponible</option>';
+  return items;
+}
+
+function buildCodesMap() {
+  const map = {};
+  for (let i = 0; i < CODES.id.length; i++) {
+    map[CODES.id[i]] = {
+      Code: CODES.Code[i],
+      Duree: (CODES.Duree_heures[i] || 0) + (CODES.Ajustement_h[i] || 0),
+      Compte: !!CODES.Compte_stage[i]
+    };
+  }
+  return map;
+}
+
+function buildEtudiantsMap() {
+  const map = {};
+  for (let i = 0; i < ETUDIANTS.id.length; i++) {
+    map[ETUDIANTS.id[i]] = (ETUDIANTS.NOM[i] || '') + ' ' + (ETUDIANTS.PRENOM[i] || '');
+  }
+  return map;
+}
+
+function pickDefaultService(items, windowStart, windowEnd) {
+  const counts = {};
+  for (let i = 0; i < PERIODES.id.length; i++) {
+    const du = epochToKey(PERIODES.Du[i]);
+    const au = epochToKey(PERIODES.Au[i]);
+    if (!du || !au) continue;
+    if (au < windowStart || du > windowEnd) continue;
+    const sid = PERIODES.Service[i];
+    counts[sid] = (counts[sid] || 0) + 1;
+  }
+  let best = null, bestCount = 0;
+  for (const it of items) {
+    const c = counts[it.id] || 0;
+    if (c > bestCount) { bestCount = c; best = it.id; }
+  }
+  return best || (items[0] ? items[0].id : null);
+}
+
+function buildSortieIndex() {
+  const idx = {};
+  for (let i = 0; i < SORTIES.id.length; i++) {
+    const pid = SORTIES.Pour_le_stage_du_[i];
+    const dk = epochToKey(SORTIES.Date[i]);
+    if (!pid || !dk) continue;
+    idx[pid + '_' + dk] = {
+      Compte: !!SORTIES.Compte_stage[i],
+      Duree: SORTIES.Duree_heures[i] || 0,
+      Motif: SORTIES.Motif[i] || ''
+    };
+  }
+  return idx;
+}
+
+function render() {
+  const startKey = document.getElementById('startDate').value;
+  const serviceId = parseInt(document.getElementById('service').value, 10);
+  const content = document.getElementById('content');
+  if (!startKey || !serviceId) { content.innerHTML = '<div class="empty">Sélectionnez un service et une date.</div>'; return; }
+
+  const days = [];
+  for (let i = 0; i < WINDOW_LEN; i++) days.push(addDaysKey(startKey, i));
+  const windowStart = days[0], windowEnd = days[days.length-1];
+
+  const codesMap = buildCodesMap();
+  const etudiantsMap = buildEtudiantsMap();
+  const sortieIdx = buildSortieIndex();
+
+  const matches = [];
+  for (let i = 0; i < PERIODES.id.length; i++) {
+    if (PERIODES.Service[i] !== serviceId) continue;
+    const du = epochToKey(PERIODES.Du[i]);
+    const au = epochToKey(PERIODES.Au[i]);
+    if (!du || !au) continue;
+    if (au < windowStart || du > windowEnd) continue;
+    matches.push({ periodeId: PERIODES.id[i], etudiantId: PERIODES.Etudiant[i], du, au, niveau: PERIODES.Niveau[i] || '', tuteur: PERIODES.Tuteur[i] || '' });
+  }
+
+  if (matches.length === 0) {
+    content.innerHTML = '<div class="empty">Aucun étudiant sur ce service pour cette période.</div>';
+    return;
+  }
+
+  matches.sort((a,b) => (etudiantsMap[a.etudiantId] || '').localeCompare(etudiantsMap[b.etudiantId] || ''));
+
+  const dayCodeCols = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const periodeDayMap = {};
+  for (let i = 0; i < PLANNING.id.length; i++) {
+    const pid = PLANNING.Periode[i];
+    const semStart = epochToKey(PLANNING.Semaine_debut[i]);
+    if (!semStart) continue;
+    if (!periodeDayMap[pid]) periodeDayMap[pid] = {};
+    for (let off = 0; off < 7; off++) {
+      const dk = addDaysKey(semStart, off);
+      periodeDayMap[pid][dk] = { rowId: PLANNING.id[i], col: dayCodeCols[off], coderef: PLANNING[dayCodeCols[off]][i] };
+    }
+  }
+
+  let html = '<div class="tablewrap"><table><thead><tr><th class="student">Étudiant</th>';
+  for (const dk of days) {
+    const lbl = fmtDayLabel(dk);
+    html += `<th class="${lbl.isWeekend ? 'weekend' : ''}"><span class="daynum">${lbl.num}</span><span class="dayname">${lbl.name}</span></th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (const m of matches) {
+    const nom = etudiantsMap[m.etudiantId] || '—';
+    const infoParts = [];
+    if (m.niveau) infoParts.push(m.niveau);
+    infoParts.push(fmtDateFull(m.du) + ' → ' + fmtDateFull(m.au));
+    if (m.tuteur) infoParts.push('Tuteur : ' + m.tuteur);
+    const infoLine = infoParts.join(' · ').replace(/</g,'&lt;');
+    html += `<tr><td class="student"><div class="student-name">${nom}</div><div class="student-info">${infoLine}</div></td>`;
+    for (const dk of days) {
+      if (dk < m.du || dk > m.au) { html += '<td class="hors-periode"></td>'; continue; }
+      const cellInfo = (periodeDayMap[m.periodeId] || {})[dk];
+      const coderef = cellInfo ? cellInfo.coderef : null;
+      const code = coderef ? codesMap[coderef] : null;
+      const sortie = sortieIdx[m.periodeId + '_' + dk];
+      let cls = '', text = '', title = '';
+      if (sortie) {
+        if (sortie.Compte) {
+          cls = 'sortie-oui';
+          text = `<span class="badge badge-oui">${code ? code.Code + '+' : ''}S</span>`;
+          title = (sortie.Motif || 'Sortie comptée') + ' (' + sortie.Duree + 'h)';
+        } else {
+          cls = 'sortie-non';
+          text = `<span class="badge badge-non">${code ? code.Code : ''} ✕</span>`;
+          title = sortie.Motif || 'Absence non comptée';
+        }
+      } else if (code) {
+        text = code.Code;
+        if (code.Code === 'R' || code.Code === 'ABS') cls = 'repos';
+        title = code.Code + (code.Duree ? ' (' + code.Duree + 'h)' : '');
+      }
+      let dataAttrs = '';
+      if (cellInfo) {
+        cls += (cls ? ' ' : '') + 'editable';
+        dataAttrs = ` data-row-id="${cellInfo.rowId}" data-col="${cellInfo.col}" data-coderef="${coderef || ''}"`;
+        if (!title) title = 'Cliquer pour modifier';
+      }
+      html += `<td class="${cls}"${dataAttrs} title="${title.replace(/"/g,'&quot;')}">${text}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  const legendParts = [];
+  const seen = {};
+  for (let i = 0; i < CODES.id.length; i++) {
+    const c = CODES.Code[i];
+    if (seen[c]) continue;
+    seen[c] = true;
+    legendParts.push(`<span class="chip"><strong>${c}</strong>&nbsp;${CODES.Libelle[i] || ''}</span>`);
+  }
+  legendParts.push('<span class="chip"><span class="badge badge-oui">Code+S</span> sortie comptée</span>');
+  legendParts.push('<span class="chip"><span class="badge badge-non">✕</span> absence non comptée</span>');
+  legendParts.push('<span class="chip"><span class="swatch" style="background:#f6f6f6;"></span> hors période de stage</span>');
+  html += `<div class="legend">${legendParts.join('')}</div>`;
+
+  content.innerHTML = html;
+
+  const serviceLabel = document.getElementById('service').selectedOptions[0] ? document.getElementById('service').selectedOptions[0].textContent : '';
+  const now = new Date();
+  const genDate = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear() + ' à ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('printHeader').innerHTML = `<h1>Planning de service — ${serviceLabel}</h1><p class="subtitle">Du ${fmtDayLabel(windowStart).num} au ${fmtDayLabel(windowEnd).num} • Généré le ${genDate}</p>`;
+}
+
+function codesListSorted() {
+  const list = [];
+  for (let i = 0; i < CODES.id.length; i++) {
+    list.push({ id: CODES.id[i], code: CODES.Code[i] || '?', libelle: CODES.Libelle[i] || '' });
+  }
+  list.sort((a, b) => a.code.localeCompare(b.code));
+  return list;
+}
+
+function startEditCell(td) {
+  const rowId = parseInt(td.dataset.rowId, 10);
+  const col = td.dataset.col;
+  const currentCoderef = td.dataset.coderef ? parseInt(td.dataset.coderef, 10) : null;
+  const originalHTML = td.innerHTML;
+  const select = document.createElement('select');
+  select.className = 'cell-edit-select';
+  const optEmpty = document.createElement('option');
+  optEmpty.value = '';
+  optEmpty.textContent = '(vide)';
+  if (!currentCoderef) optEmpty.selected = true;
+  select.appendChild(optEmpty);
+  for (const c of codesListSorted()) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.code + (c.libelle ? ' — ' + c.libelle : '');
+    if (currentCoderef === c.id) opt.selected = true;
+    select.appendChild(opt);
+  }
+  td.innerHTML = '';
+  td.appendChild(select);
+  select.focus();
+  let done = false;
+  function commit() {
+    if (done) return;
+    done = true;
+    const val = select.value;
+    const newCoderef = val ? parseInt(val, 10) : null;
+    if (newCoderef === currentCoderef) { td.innerHTML = originalHTML; return; }
+    saveCode(rowId, col, newCoderef, td);
+  }
+  function cancel() {
+    if (done) return;
+    done = true;
+    td.innerHTML = originalHTML;
+  }
+  select.addEventListener('change', commit);
+  select.addEventListener('blur', () => setTimeout(cancel, 0));
+}
+
+async function saveCode(rowId, col, newCoderef, td) {
+  td.className += ' saving';
+  td.innerHTML = '';
+  try {
+    await grist.docApi.applyUserActions([['UpdateRecord', 'PLANNING_HEBDO', rowId, { [col]: newCoderef }]]);
+    await loadData();
+    render();
+  } catch (err) {
+    alert('Erreur lors de la mise à jour : ' + err.message);
+    await loadData();
+    render();
+  }
+}
+
+document.getElementById('content').addEventListener('click', function (e) {
+  const td = e.target.closest('td.editable');
+  if (!td || td.querySelector('select')) return;
+  startEditCell(td);
+});
+
+document.getElementById('service').addEventListener('change', render);
+document.getElementById('startDate').addEventListener('change', render);
+document.getElementById('today').addEventListener('click', () => { document.getElementById('startDate').value = todayKey(); render(); });
+document.getElementById('prev').addEventListener('click', () => { const cur = document.getElementById('startDate').value; document.getElementById('startDate').value = addDaysKey(cur, -WINDOW_LEN); render(); });
+document.getElementById('next').addEventListener('click', () => { const cur = document.getElementById('startDate').value; document.getElementById('startDate').value = addDaysKey(cur, WINDOW_LEN); render(); });
+document.getElementById('refresh').addEventListener('click', async () => { await loadData(); render(); });
+document.getElementById('printBtn').addEventListener('click', () => { window.print(); });
 
 async function init() {
   await loadData();
@@ -178,18 +380,6 @@ async function init() {
   if (defaultService) document.getElementById('service').value = defaultService;
   render();
 }
-
-// ... (colle tout le reste de ton <script> original ici : functions loadData, render, saveCode, etc.)
-
-// À la fin du script, garde tes event listeners
-document.getElementById('content').addEventListener('click', function (e) {
-  const td = e.target.closest('td.editable');
-  if (!td || td.querySelector('select')) return;
-  startEditCell(td);
-});
-
-// ... autres listeners
-
 init();
 </script>
 </body>
