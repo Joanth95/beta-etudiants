@@ -19,40 +19,38 @@
   thead th { background: #f0f0f0; position: sticky; top: 0; z-index: 2; font-weight: 700; color: var(--bleu); }
   th.weekend { background: #fff3e0; }
   @media print {
-    body { padding: 6mm; background: white; }
+    body { padding: 5mm; background: white; }
     .app-header, .controls, #status { display: none !important; }
-    h1 { font-size: 16pt; margin-bottom: 6px; }
-    .subtitle { font-size: 10pt; color: #333; }
-    .tablewrap { margin: 10px 0; border: 1.5px solid #333; }
+    h1 { font-size: 14pt; margin-bottom: 4px; }
+    .subtitle { font-size: 9pt; color: #333; }
+    .tablewrap { margin: 8px 0; border: 1px solid #333; }
     table { 
-      font-size: 7.5pt; 
+      font-size: 8pt; 
       width: 100%;
-      table-layout: fixed;
     }
     th, td { 
-      padding: 3px 2px; 
-      border: 0.5px solid #555; 
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      padding: 4px 3px; 
+      border: 0.5px solid #444; 
     }
     th.student, td.student { 
-      min-width: 115px; 
-      max-width: 130px;
-      background: #e5e5e5; 
+      min-width: 130px; 
+      background: #f0f0f0; 
       font-weight: 700;
     }
-    thead th { background: #d0d0d0; }
-    .dayname { display: none; } /* Cache le nom du jour pour gagner de la place */
-    .legend { font-size: 8pt; margin-top: 12px; }
+    thead th { 
+      background: #e0e0e0; 
+      font-size: 7.5pt;
+    }
+    .daynum { font-weight: 600; }
+    .legend { font-size: 7.5pt; margin-top: 10px; }
     .print-footer {
-      position: fixed; bottom: 5mm; left: 0; right: 0;
-      text-align: center; font-size: 7.5pt; color: #555;
-      border-top: 1px solid #ccc; padding-top: 4px;
+      position: fixed; bottom: 4mm; left: 0; right: 0;
+      text-align: center; font-size: 7pt; color: #555;
+      border-top: 0.5px solid #ccc; padding-top: 3px;
     }
     @page {
       size: landscape;
-      margin: 5mm;
+      margin: 4mm;
     }
   }
 </style>
@@ -66,7 +64,7 @@
     </div>
     <div style="text-align: right;">
       <span style="display: inline-block; background: #dbeafe; color: #1e40af; font-size: 0.8rem; font-weight: 700; padding: 4px 12px; border-radius: 9999px; border: 1px solid #3b82f6; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-        v2.4 — 13/07/2026
+        v2.5 — 13/07/2026
       </span>
       <div style="font-size: 0.65rem; color: #64748b; margin-top: 3px;">
         Joan THUILLIER • CHR Metz-Thionville
@@ -95,7 +93,7 @@
   <div class="print-header" id="printHeader"></div>
   <div id="content"></div>
   <div class="print-footer">
-    Document généré par <strong>GESTION ÉTUDIANT</strong> v2.4 — Conçu et développé par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant — Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
+    Document généré par <strong>GESTION ÉTUDIANT</strong> v2.5 — Conçu et développé par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant — Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
   </div>
 </div>
 <script>
