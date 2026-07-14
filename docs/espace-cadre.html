@@ -19,10 +19,17 @@
     .pending-row:last-child { border-bottom: none; }
     .pending-main { flex: 1; }
     .save-hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 0.25rem; }
+    .anonymat-badge { font-family: ui-monospace, monospace; font-weight: 700; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; }
 
-    .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1rem 0; }
+    .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1rem 0; flex-wrap: wrap; }
     .main-tab { background: none; border: none; padding: 0.6rem 1rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .main-tab.active { color: var(--bleu); border-bottom-color: var(--bleu); }
+
+    .sub-tabs { display: flex; gap: 0.4rem; margin: 0.75rem 0 0.5rem; }
+    .sub-tab { background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 999px; padding: 0.3rem 0.8rem; font-size: 0.82rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; }
+    .sub-tab.active { background: var(--bleu); border-color: var(--bleu); color: var(--blanc); }
+    .stage-block { border-top: 1px solid var(--gris-bordure); padding-top: 0.6rem; margin-top: 0.6rem; }
+    .stage-block:first-child { border-top: none; padding-top: 0; margin-top: 0.4rem; }
 
     table.mini-planning, table.service-planning { border-collapse: collapse; width: 100%; margin-top: 0.6rem; font-size: 0.85rem; }
     table.mini-planning th, table.mini-planning td,
@@ -40,6 +47,16 @@
     td.code-cell select { width: 100%; padding: 0.2rem; font-size: 0.85rem; }
     .planning-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 0.75rem; }
     .planning-controls input[type="date"] { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; }
+
+    #print-header { display: none; }
+    @media print {
+      .app-header, .cadre-service-select, .main-tabs, .planning-controls, .app-footer,
+      #tab-declarations, #tab-dossier, #tab-evaluation, .section-note { display: none !important; }
+      #print-header { display: block; margin-bottom: 1rem; }
+      table.service-planning { display: table; overflow: visible; white-space: normal; }
+      table.service-planning th.student-col, table.service-planning td.student-col { position: static; }
+      td.code-cell { cursor: default; }
+    }
   </style>
 </head>
 <body>
@@ -88,27 +105,31 @@
         <select id="service-select"></select>
       </div>
 
-      <section>
-        <h2>Déclarations en attente de validation</h2>
-        <p class="section-note">Validez ou laissez en attente les déclarations d'heures des étudiants de ce service.</p>
-        <div id="pending"></div>
-      </section>
+      <div id="print-header"></div>
 
       <section>
         <div class="main-tabs" id="main-tabs"></div>
 
-        <div id="tab-dossier">
-          <p class="section-note">Fiche de chaque étudiant (tuteur, niveau, dates éditables) et son planning individuel. Cliquez sur une case pour changer le code du jour.</p>
+        <div id="tab-declarations">
+          <p class="section-note">Validez les déclarations en attente, ou dévalidez une déclaration déjà traitée par erreur.</p>
+          <h3>En attente</h3>
+          <div id="declarations-pending"></div>
+          <h3>Validées</h3>
+          <div id="declarations-valid"></div>
+        </div>
+
+        <div id="tab-dossier" hidden>
+          <p class="section-note">Dossier de chaque étudiant : stages effectués, planning individuel et déclarations d'heures.</p>
           <div id="dossier-list"></div>
         </div>
 
         <div id="tab-planning" hidden>
-          <p class="section-note">Planning de l'ensemble du service. Cliquez sur une case pour changer le code du jour.</p>
+          <p class="section-note">Planning de l'ensemble du service sur 30 jours. Cliquez sur une case pour changer le code du jour.</p>
           <div id="planning-service"></div>
         </div>
 
         <div id="tab-evaluation" hidden>
-          <p class="section-note">Envoyez le questionnaire de satisfaction aux étudiants dont le lien a été généré dans Grist.</p>
+          <p class="section-note">Étudiants éligibles à l'envoi du questionnaire (de 10 jours avant la fin du stage jusqu'à 40 jours après).</p>
           <div id="evaluation-list"></div>
         </div>
       </section>
@@ -121,7 +142,68 @@
     </main>
   </section>
 
+  <!-- Ajouter une déclaration pour un étudiant -->
+  <dialog id="sortie-dialog">
+    <form id="sortie-form" method="dialog">
+      <h2>Déclarer pour un étudiant</h2>
+
+      <div id="sortie-periode-wrap" hidden>
+        <label for="sortie-periode">Période de stage</label>
+        <select id="sortie-periode"></select>
+      </div>
+
+      <div class="type-options" role="radiogroup" aria-label="Type de déclaration">
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Rattrapage" checked>
+          <span><strong>Rattrapage</strong>
+            <small>Heures faites en plus du planning — ajoutées au compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Retard">
+          <span><strong>Retard</strong>
+            <small>Arrivée en retard — heures déduites du compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Sortie de stage">
+          <span><strong>Sortie de stage</strong>
+            <small>Temps organisé pour la formation (cours, regroupement…)</small></span>
+        </label>
+      </div>
+
+      <label for="sortie-motif-texte">Motif ou commentaire <span class="optional">(facultatif)</span></label>
+      <input type="text" id="sortie-motif-texte" maxlength="200" placeholder="Précisez si besoin">
+
+      <div id="sortie-compte-wrap" hidden>
+        <label class="checkbox-label">
+          <input type="checkbox" id="sortie-compte" checked>
+          Ce temps compte en temps de stage
+        </label>
+      </div>
+
+      <label for="sortie-date">Date</label>
+      <input type="date" id="sortie-date" required>
+
+      <div class="row">
+        <div>
+          <label for="sortie-debut">De</label>
+          <input type="time" id="sortie-debut" required>
+        </div>
+        <div>
+          <label for="sortie-fin">À</label>
+          <input type="time" id="sortie-fin" required>
+        </div>
+      </div>
+
+      <p id="sortie-error" class="error" hidden></p>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="sortie-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="sortie-save-btn">Déclarer</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="config.js?v=18"></script>
-  <script src="espace-cadre.js?v=2"></script>
+  <script src="espace-cadre.js?v=3"></script>
 </body>
 </html>

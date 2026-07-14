@@ -4,18 +4,21 @@ const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const TABS = [
-  { id: "dossier", label: "Dossier" },
-  { id: "planning", label: "Planning" },
-  { id: "evaluation", label: "Évaluation" },
+  { id: "declarations", label: "Déclarations à valider" },
+  { id: "dossier", label: "Dossier étudiants" },
+  { id: "planning", label: "Planning de service" },
+  { id: "evaluation", label: "Envoi des évaluations" },
 ];
 
 const state = {
   email: sessionStorage.getItem("cadre_email") || null,
   code: sessionStorage.getItem("cadre_code") || null,
-  data: null, // { services, niveaux, periodes, semaines, codes, sorties }
+  data: null, // { services, niveaux, motifs, moi, periodes, semaines, codes, sorties }
   selectedServiceId: null,
-  activeTab: "dossier",
-  planningStart: null, // ISO date (jour) du mois affiché dans l'onglet Planning
+  activeTab: "declarations",
+  dossierSubTab: {}, // studentId -> 'stages' | 'planning'
+  dossierSelectedPeriode: {}, // studentId -> periodeId
+  planningStart: null, // ISO date : début de la fenêtre de 30 jours affichée
 };
 
 /* ------------------------------------------------------------------ */
@@ -89,7 +92,6 @@ async function refresh() {
 
 function render() {
   renderServiceSelect();
-  renderPending();
   renderMainTabs();
   renderActiveTab();
 }
@@ -104,13 +106,24 @@ function renderServiceSelect() {
   sel.value = state.selectedServiceId;
   sel.onchange = () => {
     state.selectedServiceId = Number(sel.value);
-    renderPending();
     renderActiveTab();
   };
 }
 
 function periodesDuService() {
   return state.data.periodes.filter((p) => p.Service === state.selectedServiceId);
+}
+
+/** Regroupe les périodes du service par étudiant. */
+function studentsDuService() {
+  const map = new Map();
+  for (const p of periodesDuService()) {
+    const id = p.Etudiant.id;
+    if (!map.has(id)) map.set(id, { id, etudiant: p.Etudiant, periodes: [] });
+    map.get(id).periodes.push(p);
+  }
+  return [...map.values()].sort((a, b) =>
+    `${a.etudiant.nom}${a.etudiant.prenom}`.localeCompare(`${b.etudiant.nom}${b.etudiant.prenom}`));
 }
 
 function renderMainTabs() {
@@ -129,33 +142,40 @@ function renderMainTabs() {
 }
 
 function renderActiveTab() {
+  $("tab-declarations").hidden = state.activeTab !== "declarations";
   $("tab-dossier").hidden = state.activeTab !== "dossier";
   $("tab-planning").hidden = state.activeTab !== "planning";
   $("tab-evaluation").hidden = state.activeTab !== "evaluation";
+  if (state.activeTab === "declarations") renderDeclarationsTab();
   if (state.activeTab === "dossier") renderDossierTab();
   if (state.activeTab === "planning") renderPlanningTab();
   if (state.activeTab === "evaluation") renderEvaluationTab();
 }
 
 /* ------------------------------------------------------------------ */
-/* Déclarations en attente                                             */
+/* Onglet Déclarations à valider (en attente + validées)               */
 /* ------------------------------------------------------------------ */
 
-function renderPending() {
-  const container = $("pending");
-  container.innerHTML = "";
+function renderDeclarationsTab() {
   const periodeIds = new Set(periodesDuService().map((p) => p.id));
   const periodesById = new Map(state.data.periodes.map((p) => [p.id, p]));
-  const pending = state.data.sorties
-    .filter((s) => !s.Valide && periodeIds.has(s.Periode))
-    .sort((a, b) => (a.Date || "").localeCompare(b.Date || ""));
+  const sorties = state.data.sorties.filter((s) => periodeIds.has(s.Periode));
+  const pending = sorties.filter((s) => !s.Valide).sort((a, b) => (a.Date || "").localeCompare(b.Date || ""));
+  const valid = sorties.filter((s) => s.Valide).sort((a, b) => (b.Date || "").localeCompare(a.Date || ""));
 
-  if (!pending.length) {
-    container.appendChild(el("p", "empty", "Aucune déclaration en attente pour ce service."));
+  renderSortieActionList($("declarations-pending"), pending, periodesById, false);
+  renderSortieActionList($("declarations-valid"), valid, periodesById, true);
+}
+
+function renderSortieActionList(container, list, periodesById, isValid) {
+  container.innerHTML = "";
+  if (!list.length) {
+    container.appendChild(el("p", "empty",
+      isValid ? "Aucune déclaration validée pour ce service." : "Aucune déclaration en attente pour ce service."));
     return;
   }
 
-  for (const s of pending) {
+  for (const s of list) {
     const p = periodesById.get(s.Periode);
     const row = el("div", "pending-row");
     const main = el("div", "pending-main");
@@ -166,11 +186,11 @@ function renderPending() {
       `${frDate(s.Date)} · ${s.Heure_debut || "?"} – ${s.Heure_fin || "?"} · ${formatH(s.Duree_heures)}`));
     row.appendChild(main);
 
-    const btn = el("button", "btn btn-primary", "Valider");
+    const btn = el("button", isValid ? "btn btn-ghost" : "btn btn-primary", isValid ? "Dévalider" : "Valider");
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       try {
-        await api("PATCH", `/api/cadre/sorties/${s.id}`, { Valide: true });
+        await api("PATCH", `/api/cadre/sorties/${s.id}`, { Valide: !isValid });
         await refresh();
       } catch (err) {
         alert(err.message);
@@ -183,38 +203,70 @@ function renderPending() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Onglet Dossier (fiche + planning individuel par étudiant)           */
+/* Onglet Dossier étudiants                                            */
 /* ------------------------------------------------------------------ */
 
 function renderDossierTab() {
   const container = $("dossier-list");
   container.innerHTML = "";
-  const periodes = periodesDuService().sort((a, b) =>
-    `${a.Etudiant.nom}${a.Etudiant.prenom}`.localeCompare(`${b.Etudiant.nom}${b.Etudiant.prenom}`));
+  const students = studentsDuService();
 
-  if (!periodes.length) {
+  if (!students.length) {
     container.appendChild(el("p", "empty", "Aucun étudiant sur ce service."));
     return;
   }
 
-  for (const p of periodes) {
+  for (const st of students) {
     const card = el("div", "etu-card");
 
     const header = el("div", "etu-header");
-    header.appendChild(el("div", "etu-nom", `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim()));
-    const metaParts = [];
-    if (p.Etudiant.formation) metaParts.push(p.Etudiant.formation);
-    if (p.Etudiant.centre) metaParts.push(p.Etudiant.centre);
-    metaParts.push(`${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser`);
-    metaParts.push(`Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`);
-    header.appendChild(el("div", "etu-meta", metaParts.join(" · ")));
+    const left = el("div", "");
+    left.appendChild(el("span", "etu-nom", `${st.etudiant.prenom} ${st.etudiant.nom}`.trim()));
+    if (st.etudiant.anonymat) {
+      left.append(document.createTextNode(" "));
+      left.appendChild(el("span", "anonymat-badge", st.etudiant.anonymat));
+    }
+    header.appendChild(left);
+    const metaParts = [st.etudiant.formation, st.etudiant.centre].filter(Boolean);
+    if (metaParts.length) header.appendChild(el("div", "etu-meta", metaParts.join(" · ")));
     card.appendChild(header);
 
-    card.appendChild(renderFiche(p));
-    card.appendChild(renderMiniPlanning(p));
+    const subTabs = el("div", "sub-tabs");
+    const current = state.dossierSubTab[st.id] || "stages";
+    const subTabDefs = [
+      { id: "stages", label: "Stages faits" },
+      { id: "planning", label: "Planning personnel" },
+    ];
+    for (const t of subTabDefs) {
+      const btn = el("button", "sub-tab" + (current === t.id ? " active" : ""), t.label);
+      btn.type = "button";
+      btn.addEventListener("click", () => {
+        state.dossierSubTab[st.id] = t.id;
+        renderDossierTab();
+      });
+      subTabs.appendChild(btn);
+    }
+    card.appendChild(subTabs);
+
+    card.appendChild(current === "stages" ? renderStagesFaits(st) : renderPlanningPersonnel(st));
 
     container.appendChild(card);
   }
+}
+
+/** Sous-onglet "Stages faits" : liste des périodes de ce service, fiche éditable pour chacune. */
+function renderStagesFaits(st) {
+  const wrap = el("div", "");
+  const periodes = [...st.periodes].sort((a, b) => (b.Du || "").localeCompare(a.Du || ""));
+  for (const p of periodes) {
+    const block = el("div", "stage-block");
+    block.appendChild(el("div", "etu-meta",
+      `${frDate(p.Du)} → ${frDate(p.Au)} · ${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser · `
+      + `Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`));
+    block.appendChild(renderFiche(p));
+    wrap.appendChild(block);
+  }
+  return wrap;
 }
 
 function renderFiche(p) {
@@ -275,7 +327,42 @@ function renderFiche(p) {
   return container;
 }
 
-/** Tableau du planning d'un seul étudiant : une ligne par semaine. */
+/** Sous-onglet "Planning personnel" : sélecteur de période (si plusieurs), planning, déclarations, bouton +Déclarer. */
+function renderPlanningPersonnel(st) {
+  const wrap = el("div", "");
+  const periodes = [...st.periodes].sort((a, b) => (b.Du || "").localeCompare(a.Du || ""));
+
+  let selectedId = state.dossierSelectedPeriode[st.id];
+  if (!periodes.some((p) => p.id === selectedId)) {
+    selectedId = (periodes.find((p) => p.En_cours) || periodes[0]).id;
+    state.dossierSelectedPeriode[st.id] = selectedId;
+  }
+
+  if (periodes.length > 1) {
+    const sel = document.createElement("select");
+    sel.innerHTML = periodes.map((p) =>
+      `<option value="${p.id}" ${p.id === selectedId ? "selected" : ""}>${frDate(p.Du)} → ${frDate(p.Au)}</option>`).join("");
+    sel.addEventListener("change", () => {
+      state.dossierSelectedPeriode[st.id] = Number(sel.value);
+      renderDossierTab();
+    });
+    wrap.appendChild(sel);
+  }
+
+  const p = periodes.find((x) => x.id === selectedId);
+  wrap.appendChild(renderMiniPlanning(p));
+
+  const declareBtn = el("button", "btn btn-primary", "+ Déclarer");
+  declareBtn.type = "button";
+  declareBtn.style.marginTop = "0.6rem";
+  declareBtn.addEventListener("click", () => openSortieDialog(periodes, selectedId));
+  wrap.appendChild(declareBtn);
+
+  wrap.appendChild(renderSortiesList(p));
+  return wrap;
+}
+
+/** Tableau du planning d'une seule période : une ligne par semaine. */
 function renderMiniPlanning(p) {
   const weeks = state.data.semaines
     .filter((s) => s.Periode === p.id)
@@ -302,8 +389,115 @@ function renderMiniPlanning(p) {
   return table;
 }
 
+/** Liste (lecture seule) des déclarations d'une période. */
+function renderSortiesList(p) {
+  const wrap = el("div", "");
+  wrap.style.marginTop = "0.75rem";
+  const sorties = state.data.sorties.filter((s) => s.Periode === p.id)
+    .sort((a, b) => (b.Date || "").localeCompare(a.Date || ""));
+
+  if (!sorties.length) {
+    wrap.appendChild(el("p", "empty", "Aucune déclaration pour cette période."));
+    return wrap;
+  }
+
+  for (const s of sorties) {
+    const row = el("div", "pending-row");
+    const main = el("div", "pending-main");
+    const titleText = s.Commentaire ? `${s.Motif} — ${s.Commentaire}` : s.Motif;
+    const title = el("div", "sortie-title", titleText);
+    title.appendChild(badge(s.Valide ? "Validé" : "En attente", s.Valide ? "ok" : "pending"));
+    main.appendChild(title);
+    main.appendChild(el("div", "sortie-meta",
+      `${frDate(s.Date)} · ${s.Heure_debut || "?"} – ${s.Heure_fin || "?"} · ${formatH(s.Duree_heures)}`));
+    row.appendChild(main);
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
 /* ------------------------------------------------------------------ */
-/* Onglet Planning (grille de tout le service)                        */
+/* Dialogue : déclarer des heures pour un étudiant                    */
+/* ------------------------------------------------------------------ */
+
+const sortieDialog = $("sortie-dialog");
+let sortieDialogPeriodes = [];
+
+function openSortieDialog(periodes, defaultPeriodeId) {
+  sortieDialogPeriodes = periodes;
+  const wrap = $("sortie-periode-wrap");
+  if (periodes.length > 1) {
+    wrap.hidden = false;
+    $("sortie-periode").innerHTML = periodes.map((p) =>
+      `<option value="${p.id}" ${p.id === defaultPeriodeId ? "selected" : ""}>${frDate(p.Du)} → ${frDate(p.Au)}</option>`).join("");
+  } else {
+    wrap.hidden = true;
+  }
+  document.querySelector('input[name="sortie-type"][value="Rattrapage"]').checked = true;
+  $("sortie-motif-texte").value = "";
+  $("sortie-compte").checked = true;
+  $("sortie-date").value = isoDate(new Date());
+  $("sortie-debut").value = "";
+  $("sortie-fin").value = "";
+  $("sortie-error").hidden = true;
+  syncSortieTypeUI();
+  sortieDialog.showModal();
+}
+
+function selectedSortieType() {
+  return document.querySelector('input[name="sortie-type"]:checked').value;
+}
+
+function syncSortieTypeUI() {
+  $("sortie-compte-wrap").hidden = selectedSortieType() !== "Sortie de stage";
+}
+
+for (const radio of document.querySelectorAll('input[name="sortie-type"]')) {
+  radio.addEventListener("change", syncSortieTypeUI);
+}
+
+$("sortie-cancel-btn").addEventListener("click", () => sortieDialog.close());
+
+$("sortie-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = $("sortie-error");
+  errEl.hidden = true;
+
+  const type = selectedSortieType();
+  let compte = true;
+  if (type === "Retard") compte = false;
+  if (type === "Sortie de stage") compte = $("sortie-compte").checked;
+
+  const periodeId = sortieDialogPeriodes.length > 1
+    ? Number($("sortie-periode").value)
+    : sortieDialogPeriodes[0].id;
+
+  const body = {
+    periodeId,
+    Motif: type,
+    Commentaire: $("sortie-motif-texte").value.trim(),
+    Date: $("sortie-date").value,
+    Heure_debut: $("sortie-debut").value,
+    Heure_fin: $("sortie-fin").value,
+    Compte_stage: compte,
+  };
+
+  const btn = $("sortie-save-btn");
+  btn.disabled = true;
+  try {
+    await api("POST", "/api/cadre/sorties", body);
+    sortieDialog.close();
+    await refresh();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Onglet Planning de service (grille 30 jours + impression)          */
 /* ------------------------------------------------------------------ */
 
 function renderPlanningTab() {
@@ -321,25 +515,31 @@ function renderPlanningTab() {
   const todayBtn = el("button", "btn btn-ghost", "Aujourd'hui");
   todayBtn.type = "button";
   todayBtn.addEventListener("click", () => { state.planningStart = isoDate(new Date()); renderPlanningTab(); });
-  const prevBtn = el("button", "btn btn-ghost", "◀ Préc.");
+  const prevBtn = el("button", "btn btn-ghost", "◀ Préc. 30j");
   prevBtn.type = "button";
-  prevBtn.addEventListener("click", () => shiftMonth(-1));
-  const nextBtn = el("button", "btn btn-ghost", "Suiv. ▶");
+  prevBtn.addEventListener("click", () => shiftWindow(-30));
+  const nextBtn = el("button", "btn btn-ghost", "Suiv. 30j ▶");
   nextBtn.type = "button";
-  nextBtn.addEventListener("click", () => shiftMonth(1));
-  controls.append(dateInput, todayBtn, prevBtn, nextBtn);
+  nextBtn.addEventListener("click", () => shiftWindow(30));
+  const printBtn = el("button", "btn btn-primary", "🖨 Imprimer");
+  printBtn.type = "button";
+  printBtn.addEventListener("click", () => window.print());
+  controls.append(dateInput, todayBtn, prevBtn, nextBtn, printBtn);
   container.appendChild(controls);
 
-  const range = getMonthRange(state.planningStart || isoDate(new Date()));
+  const startKey = state.planningStart || isoDate(new Date());
   const days = [];
-  for (let i = 0; i < range.numDays; i++) days.push(addDaysIso(range.startKey, i));
+  for (let i = 0; i < 30; i++) days.push(addDaysIso(startKey, i));
+  const endKey = days[days.length - 1];
+
+  updatePrintHeader(startKey, endKey);
 
   const periodes = periodesDuService()
-    .filter((p) => !(p.Au && p.Au < range.startKey) && !(p.Du && p.Du > range.endKey))
+    .filter((p) => !(p.Au && p.Au < startKey) && !(p.Du && p.Du > endKey))
     .sort((a, b) => `${a.Etudiant.nom}${a.Etudiant.prenom}`.localeCompare(`${b.Etudiant.nom}${b.Etudiant.prenom}`));
 
   if (!periodes.length) {
-    container.appendChild(el("p", "empty", "Aucun étudiant sur ce service pour ce mois."));
+    container.appendChild(el("p", "empty", "Aucun étudiant sur ce service pour cette période."));
     return;
   }
 
@@ -380,18 +580,24 @@ function renderPlanningTab() {
   container.appendChild(table);
 }
 
-function shiftMonth(delta) {
+function shiftWindow(deltaDays) {
   const cur = state.planningStart ? new Date(state.planningStart + "T00:00:00") : new Date();
-  cur.setMonth(cur.getMonth() + delta);
+  cur.setDate(cur.getDate() + deltaDays);
   state.planningStart = isoDate(cur);
   renderPlanningTab();
 }
 
-function getMonthRange(key) {
-  const d = new Date(key + "T00:00:00");
-  const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  return { startKey: isoDate(first), endKey: isoDate(last), numDays: last.getDate() };
+function updatePrintHeader(startKey, endKey) {
+  const service = state.data.services.find((s) => s.id === state.selectedServiceId);
+  const serviceName = service ? service.Nom : "";
+  const now = new Date();
+  const genDate = now.toLocaleDateString("fr-FR") + " à "
+    + now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const printedBy = (state.data.moi && state.data.moi.nom) || "";
+  $("print-header").innerHTML =
+    `<h2 style="margin:0 0 4px;">Planning de service — ${escapeHtml(serviceName)}</h2>`
+    + `<p style="margin:0;color:#555;font-size:0.85rem;">Du ${frDate(startKey)} au ${frDate(endKey)} · Généré le ${genDate}`
+    + (printedBy ? ` · Imprimé par ${escapeHtml(printedBy)}` : "") + `</p>`;
 }
 
 /** Associe chaque jour (ISO) d'une période à sa case de planning (semaine + colonne). */
@@ -463,16 +669,27 @@ function codeCell(semaineId, jour, codeId) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Onglet Évaluation                                                   */
+/* Onglet Envoi des évaluations (étudiants éligibles)                  */
 /* ------------------------------------------------------------------ */
 
 function renderEvaluationTab() {
   const container = $("evaluation-list");
   container.innerHTML = "";
-  const periodes = periodesDuService().sort((a, b) => (b.Du || "").localeCompare(a.Du || ""));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Éligible entre 10 jours avant la fin du stage et 40 jours après.
+  const periodes = periodesDuService().filter((p) => {
+    if (!p.Au) return false;
+    const au = new Date(p.Au + "T00:00:00");
+    const diffDays = Math.round((today - au) / 86400000);
+    return diffDays >= -10 && diffDays <= 40;
+  }).sort((a, b) => (a.Au || "").localeCompare(b.Au || ""));
 
   if (!periodes.length) {
-    container.appendChild(el("p", "empty", "Aucun étudiant sur ce service."));
+    container.appendChild(el("p", "empty",
+      "Aucun étudiant éligible actuellement (de 10 jours avant la fin du stage à 40 jours après)."));
     return;
   }
 

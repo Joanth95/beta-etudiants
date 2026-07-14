@@ -28,6 +28,7 @@
  *   POST   /api/cadre/login    { email, code }         -> payload des services du cadre
  *   GET    /api/cadre/data                             -> payload complet (rafraîchissement)
  *   PATCH  /api/cadre/sorties/:id   { Valide }         -> valider/invalider une déclaration
+ *   POST   /api/cadre/sorties  { periodeId, ... }      -> déclarer des heures pour un étudiant (en attente)
  *   PATCH  /api/cadre/planning/:semaineId { jour, codeId } -> édite une case du planning
  *   PATCH  /api/cadre/periodes/:id  { Tuteur, Niveau, Du, Au } -> édite une fiche de période
  */
@@ -129,6 +130,9 @@ async function route(request, env) {
     const sm = path.match(/^\/api\/cadre\/sorties\/(\d+)$/);
     if (request.method === "PATCH" && sm) {
       return validerSortie(request, env, cadre, Number(sm[1]));
+    }
+    if (request.method === "POST" && path === "/api/cadre/sorties") {
+      return creerSortiePourEtudiant(request, env, cadre);
     }
     const wm = path.match(/^\/api\/cadre\/planning\/(\d+)$/);
     if (request.method === "PATCH" && wm) {
@@ -415,9 +419,13 @@ async function buildCadrePayload(env, cadre) {
   return {
     services: cadre.services.map((s) => ({ id: s.id, Nom: s.fields.Nom || "" })),
     niveaux: NIVEAUX,
+    motifs: MOTIFS,
+    moi: { nom: cadreNomComplet(cadre) },
     periodes: periodes.map((p) => {
       // Volontairement PAS de date de naissance ni de numéro de téléphone
       // personnel : ces données sont trop sensibles pour ce niveau de sécurité.
+      // Le code anonymat est en revanche nécessaire : c'est le cadre qui le
+      // redonne à un étudiant qui l'aurait oublié.
       const etu = etudiantsById.get(p.fields.Etudiant);
       const fait = p.fields.FAIT ?? 0;
       const aFaire = p.fields.A_FAIRE ?? 0;
@@ -425,11 +433,13 @@ async function buildCadrePayload(env, cadre) {
         id: p.id,
         Service: p.fields.Service,
         Etudiant: {
+          id: p.fields.Etudiant,
           nom: etu ? etu.fields.NOM || "" : "",
           prenom: etu ? etu.fields.PRENOM || "" : "",
           formation: etu ? etu.fields.FORMATION || "" : "",
           centre: etu ? etu.fields.Centre_de_formation || "" : "",
           email: etu ? etu.fields.Adresse_mail || "" : "",
+          anonymat: etu ? etu.fields.Anonymat || "" : "",
         },
         Du: epochToIso(p.fields.Du),
         Au: epochToIso(p.fields.Au),
@@ -484,6 +494,48 @@ async function ensurePeriodeInScope(env, cadre, periodeId) {
     throw httpError(403, "Cet étudiant n'appartient pas à l'un de vos services");
   }
   return rows[0];
+}
+
+/** Nom complet du cadre connecté (pour l'affichage "Imprimé par"). */
+function cadreNomComplet(cadre) {
+  return [cadre.fields.Civilite, cadre.fields.Nom, cadre.fields.Prenom]
+    .map((x) => (x || "").trim()).filter(Boolean).join(" ");
+}
+
+/** Le cadre déclare des heures pour un étudiant de son service (reste en attente de validation). */
+async function creerSortiePourEtudiant(request, env, cadre) {
+  const body = await request.json().catch(() => ({}));
+  const periodeId = Number(body.periodeId);
+  const periode = await ensurePeriodeInScope(env, cadre, periodeId);
+
+  const motif = String(body.Motif || "").trim().slice(0, 100);
+  const date = String(body.Date || "");
+  const debut = String(body.Heure_debut || "").trim();
+  const fin = String(body.Heure_fin || "").trim();
+
+  if (!MOTIFS.includes(motif)) throw httpError(400, "Motif invalide");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, "Date invalide");
+  if (!TIME_RE.test(debut) || !TIME_RE.test(fin)) {
+    throw httpError(400, "Heures invalides (format attendu : HH:MM)");
+  }
+
+  const compteStage = motif.toUpperCase() === "RETARD" ? false : body.Compte_stage !== false;
+  const dateEpoch = Date.parse(date + "T00:00:00Z") / 1000;
+
+  const fields = {
+    Anonymat: periode.fields.Etudiant,
+    Code_anonymat: periode.fields.Code_anonymat || "",
+    Motif: motif,
+    Motif_ou_Commentaire: cleanText(body.Commentaire, 200),
+    Date: dateEpoch,
+    Heure_debut: debut,
+    Heure_fin: fin,
+    Compte_stage: compteStage,
+    Rapprochement_manuel: periodeId,
+  };
+
+  const data = await grist(env, "POST", `/tables/${T_SORTIES}/records`, { records: [{ fields }] });
+  return json({ id: data.records[0].id }, 201);
 }
 
 async function validerSortie(request, env, cadre, rowId) {
