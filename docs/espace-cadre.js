@@ -234,7 +234,7 @@ function renderDossierTab() {
     const subTabs = el("div", "sub-tabs");
     const current = state.dossierSubTab[st.id] || "stages";
     const subTabDefs = [
-      { id: "stages", label: "Stages faits" },
+      { id: "stages", label: "Stages effectués" },
       { id: "planning", label: "Planning personnel" },
     ];
     for (const t of subTabDefs) {
@@ -254,16 +254,28 @@ function renderDossierTab() {
   }
 }
 
-/** Sous-onglet "Stages faits" : liste des périodes de ce service, fiche éditable pour chacune. */
+/** Sous-onglet "Stages effectués" : liste des périodes de ce service ; seul le
+ *  stage en cours reste éditable, les stages terminés s'affichent en lecture seule. */
 function renderStagesFaits(st) {
   const wrap = el("div", "");
   const periodes = [...st.periodes].sort((a, b) => (b.Du || "").localeCompare(a.Du || ""));
   for (const p of periodes) {
     const block = el("div", "stage-block");
-    block.appendChild(el("div", "etu-meta",
-      `${frDate(p.Du)} → ${frDate(p.Au)} · ${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser · `
-      + `Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`));
-    block.appendChild(renderFiche(p));
+    const service = state.data.services.find((s) => s.id === p.Service);
+    const infoParts = [service ? service.Nom : "", `${frDate(p.Du)} → ${frDate(p.Au)}`];
+    if (!p.En_cours) {
+      if (p.Niveau) infoParts.push(p.Niveau);
+      if (p.Tuteur) infoParts.push(`Tuteur : ${p.Tuteur}`);
+    }
+    infoParts.push(`${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser`);
+    infoParts.push(`Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`);
+    block.appendChild(el("div", "etu-meta", infoParts.filter(Boolean).join(" · ")));
+
+    if (p.En_cours) {
+      block.appendChild(renderFiche(p));
+    } else {
+      block.appendChild(el("p", "save-hint", "Stage terminé : la fiche n'est plus modifiable."));
+    }
     wrap.appendChild(block);
   }
   return wrap;

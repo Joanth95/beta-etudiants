@@ -596,6 +596,15 @@ async function updatePeriode(request, env, cadre, periodeId) {
     throw httpError(403, "Cet étudiant n'appartient pas à l'un de vos services");
   }
 
+  // La fiche (tuteur/niveau/dates) d'un stage déjà terminé ne se modifie
+  // plus : seul le stage en cours (En_cours, formule Grist Au >= aujourd'hui)
+  // reste éditable. Evaluation_envoyee reste modifiable même après la fin.
+  const modifieLaFiche = body.Tuteur !== undefined || body.Niveau !== undefined
+    || body.Du !== undefined || body.Au !== undefined;
+  if (modifieLaFiche && !rows[0].fields.En_cours) {
+    throw httpError(403, "Ce stage est terminé : sa fiche ne peut plus être modifiée");
+  }
+
   const fields = {};
   if (body.Tuteur !== undefined) fields.Tuteur = cleanText(body.Tuteur, 80);
   if (body.Niveau !== undefined) {
