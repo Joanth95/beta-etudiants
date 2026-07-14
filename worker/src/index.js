@@ -416,13 +416,21 @@ async function buildCadrePayload(env, cadre) {
     services: cadre.services.map((s) => ({ id: s.id, Nom: s.fields.Nom || "" })),
     niveaux: NIVEAUX,
     periodes: periodes.map((p) => {
+      // Volontairement PAS de date de naissance ni de numéro de téléphone
+      // personnel : ces données sont trop sensibles pour ce niveau de sécurité.
       const etu = etudiantsById.get(p.fields.Etudiant);
       const fait = p.fields.FAIT ?? 0;
       const aFaire = p.fields.A_FAIRE ?? 0;
       return {
         id: p.id,
         Service: p.fields.Service,
-        Etudiant: { nom: etu ? etu.fields.NOM || "" : "", prenom: etu ? etu.fields.PRENOM || "" : "" },
+        Etudiant: {
+          nom: etu ? etu.fields.NOM || "" : "",
+          prenom: etu ? etu.fields.PRENOM || "" : "",
+          formation: etu ? etu.fields.FORMATION || "" : "",
+          centre: etu ? etu.fields.Centre_de_formation || "" : "",
+          email: etu ? etu.fields.Adresse_mail || "" : "",
+        },
         Du: epochToIso(p.fields.Du),
         Au: epochToIso(p.fields.Au),
         Niveau: p.fields.Niveau || "",
@@ -431,6 +439,7 @@ async function buildCadrePayload(env, cadre) {
         A_FAIRE: aFaire,
         FAIT: fait,
         Solde_heures: Math.round((fait - aFaire) * 100) / 100,
+        Lien_evaluation: p.fields.Lien_evaluation || "",
       };
     }),
     semaines: semainesData.map(({ s, jours }) => {

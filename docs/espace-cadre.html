@@ -15,12 +15,31 @@
     .etu-fiche { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.6rem 0; }
     .etu-fiche label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--texte-doux); }
     .etu-fiche input, .etu-fiche select { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; }
-    .day-cell.editable { cursor: pointer; }
-    .day-cell.editable:hover { outline: 2px solid var(--bleu); }
     .pending-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--gris-bordure); }
     .pending-row:last-child { border-bottom: none; }
     .pending-main { flex: 1; }
     .save-hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 0.25rem; }
+
+    .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1rem 0; }
+    .main-tab { background: none; border: none; padding: 0.6rem 1rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .main-tab.active { color: var(--bleu); border-bottom-color: var(--bleu); }
+
+    table.mini-planning, table.service-planning { border-collapse: collapse; width: 100%; margin-top: 0.6rem; font-size: 0.85rem; }
+    table.mini-planning th, table.mini-planning td,
+    table.service-planning th, table.service-planning td { border: 1px solid var(--gris-bordure); padding: 0.4rem 0.5rem; text-align: center; }
+    table.mini-planning th:first-child, table.mini-planning td:first-child { text-align: left; }
+    table.service-planning { display: block; overflow-x: auto; white-space: nowrap; }
+    table.service-planning th.student-col, table.service-planning td.student-col {
+      position: sticky; left: 0; background: var(--blanc); text-align: left; min-width: 180px; z-index: 1;
+    }
+    table.service-planning thead th { background: var(--gris-fond); }
+    .etu-meta-small { font-size: 0.75rem; color: var(--texte-doux); font-weight: 400; }
+    td.hors-periode { background: var(--gris-fond); }
+    td.code-cell { cursor: pointer; }
+    td.code-cell:hover { outline: 2px solid var(--bleu); outline-offset: -2px; }
+    td.code-cell select { width: 100%; padding: 0.2rem; font-size: 0.85rem; }
+    .planning-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 0.75rem; }
+    .planning-controls input[type="date"] { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -76,9 +95,22 @@
       </section>
 
       <section>
-        <h2>Étudiants et planning</h2>
-        <p class="section-note">Cliquez sur une case du planning pour changer le code horaire du jour. Les fiches (tuteur, niveau, dates) sont éditables directement.</p>
-        <div id="etudiants"></div>
+        <div class="main-tabs" id="main-tabs"></div>
+
+        <div id="tab-dossier">
+          <p class="section-note">Fiche de chaque étudiant (tuteur, niveau, dates éditables) et son planning individuel. Cliquez sur une case pour changer le code du jour.</p>
+          <div id="dossier-list"></div>
+        </div>
+
+        <div id="tab-planning" hidden>
+          <p class="section-note">Planning de l'ensemble du service. Cliquez sur une case pour changer le code du jour.</p>
+          <div id="planning-service"></div>
+        </div>
+
+        <div id="tab-evaluation" hidden>
+          <p class="section-note">Envoyez le questionnaire de satisfaction aux étudiants dont le lien a été généré dans Grist.</p>
+          <div id="evaluation-list"></div>
+        </div>
       </section>
 
       <footer class="app-footer">
@@ -89,21 +121,7 @@
     </main>
   </section>
 
-  <!-- Sélecteur de code horaire pour une case de planning -->
-  <dialog id="code-dialog">
-    <form id="code-form" method="dialog">
-      <h2>Code horaire</h2>
-      <label for="code-select">Jour sélectionné</label>
-      <select id="code-select"></select>
-      <p id="code-error" class="error" hidden></p>
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-ghost" id="code-cancel-btn">Annuler</button>
-        <button type="submit" class="btn btn-primary" id="code-save-btn">Enregistrer</button>
-      </div>
-    </form>
-  </dialog>
-
   <script src="config.js?v=18"></script>
-  <script src="espace-cadre.js?v=1"></script>
+  <script src="espace-cadre.js?v=2"></script>
 </body>
 </html>

@@ -3,15 +3,20 @@
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const TABS = [
+  { id: "dossier", label: "Dossier" },
+  { id: "planning", label: "Planning" },
+  { id: "evaluation", label: "Évaluation" },
+];
 
 const state = {
   email: sessionStorage.getItem("cadre_email") || null,
   code: sessionStorage.getItem("cadre_code") || null,
   data: null, // { services, niveaux, periodes, semaines, codes, sorties }
   selectedServiceId: null,
+  activeTab: "dossier",
+  planningStart: null, // ISO date (jour) du mois affiché dans l'onglet Planning
 };
-
-let editingCell = null; // { semaineId, jour }
 
 /* ------------------------------------------------------------------ */
 /* API                                                                 */
@@ -79,13 +84,14 @@ async function refresh() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Rendu                                                               */
+/* Rendu général                                                       */
 /* ------------------------------------------------------------------ */
 
 function render() {
   renderServiceSelect();
   renderPending();
-  renderEtudiants();
+  renderMainTabs();
+  renderActiveTab();
 }
 
 function renderServiceSelect() {
@@ -99,13 +105,41 @@ function renderServiceSelect() {
   sel.onchange = () => {
     state.selectedServiceId = Number(sel.value);
     renderPending();
-    renderEtudiants();
+    renderActiveTab();
   };
 }
 
 function periodesDuService() {
   return state.data.periodes.filter((p) => p.Service === state.selectedServiceId);
 }
+
+function renderMainTabs() {
+  const bar = $("main-tabs");
+  bar.innerHTML = "";
+  for (const tab of TABS) {
+    const btn = el("button", "main-tab" + (state.activeTab === tab.id ? " active" : ""), tab.label);
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      state.activeTab = tab.id;
+      renderMainTabs();
+      renderActiveTab();
+    });
+    bar.appendChild(btn);
+  }
+}
+
+function renderActiveTab() {
+  $("tab-dossier").hidden = state.activeTab !== "dossier";
+  $("tab-planning").hidden = state.activeTab !== "planning";
+  $("tab-evaluation").hidden = state.activeTab !== "evaluation";
+  if (state.activeTab === "dossier") renderDossierTab();
+  if (state.activeTab === "planning") renderPlanningTab();
+  if (state.activeTab === "evaluation") renderEvaluationTab();
+}
+
+/* ------------------------------------------------------------------ */
+/* Déclarations en attente                                             */
+/* ------------------------------------------------------------------ */
 
 function renderPending() {
   const container = $("pending");
@@ -148,8 +182,12 @@ function renderPending() {
   }
 }
 
-function renderEtudiants() {
-  const container = $("etudiants");
+/* ------------------------------------------------------------------ */
+/* Onglet Dossier (fiche + planning individuel par étudiant)           */
+/* ------------------------------------------------------------------ */
+
+function renderDossierTab() {
+  const container = $("dossier-list");
   container.innerHTML = "";
   const periodes = periodesDuService().sort((a, b) =>
     `${a.Etudiant.nom}${a.Etudiant.prenom}`.localeCompare(`${b.Etudiant.nom}${b.Etudiant.prenom}`));
@@ -159,29 +197,21 @@ function renderEtudiants() {
     return;
   }
 
-  const codeById = new Map(state.data.codes.map((c) => [c.id, c]));
-
   for (const p of periodes) {
     const card = el("div", "etu-card");
 
     const header = el("div", "etu-header");
     header.appendChild(el("div", "etu-nom", `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim()));
-    const stats = el("div", "etu-meta",
-      `${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser · Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`);
-    header.appendChild(stats);
+    const metaParts = [];
+    if (p.Etudiant.formation) metaParts.push(p.Etudiant.formation);
+    if (p.Etudiant.centre) metaParts.push(p.Etudiant.centre);
+    metaParts.push(`${formatH(p.FAIT)} effectuées / ${formatH(p.A_FAIRE)} à réaliser`);
+    metaParts.push(`Solde ${p.Solde_heures > 0 ? "+" : ""}${formatH(p.Solde_heures)}`);
+    header.appendChild(el("div", "etu-meta", metaParts.join(" · ")));
     card.appendChild(header);
 
     card.appendChild(renderFiche(p));
-
-    const weeks = state.data.semaines
-      .filter((s) => s.Periode === p.id)
-      .sort((a, b) => (a.Semaine_debut || "").localeCompare(b.Semaine_debut || ""));
-    for (const week of weeks) {
-      card.appendChild(renderWeek(week, codeById));
-    }
-    if (!weeks.length) {
-      card.appendChild(el("p", "empty", "Planning non encore établi."));
-    }
+    card.appendChild(renderMiniPlanning(p));
 
     container.appendChild(card);
   }
@@ -245,77 +275,247 @@ function renderFiche(p) {
   return container;
 }
 
-function renderWeek(week, codeById) {
-  const card = el("section", "week-card");
-  const header = el("div", "week-header");
-  header.appendChild(el("h3", "", `Semaine du ${frDate(week.Semaine_debut)}`));
-  card.appendChild(header);
+/** Tableau du planning d'un seul étudiant : une ligne par semaine. */
+function renderMiniPlanning(p) {
+  const weeks = state.data.semaines
+    .filter((s) => s.Periode === p.id)
+    .sort((a, b) => (a.Semaine_debut || "").localeCompare(b.Semaine_debut || ""));
 
-  const grid = el("div", "week-grid");
-  DAYS.forEach((day, i) => {
-    const dayIso = addDaysIso(week.Semaine_debut, i);
-    const code = codeById.get(week[day]);
-    const info = (week.jours && week.jours[i]) || { heures: 0, ferie: false };
-    const cell = el("div", "day-cell editable" + (info.ferie ? " ferie" : ""));
+  if (!weeks.length) return el("p", "empty", "Planning non encore établi.");
 
-    const label = el("div", "day-label", `${day.slice(0, 3)}. ${dayNum(dayIso)}`);
-    if (info.ferie) label.appendChild(el("span", "ferie-tag", "férié"));
-    cell.appendChild(label);
+  const table = document.createElement("table");
+  table.className = "mini-planning";
+  const thead = document.createElement("thead");
+  thead.innerHTML = "<tr><th>Semaine</th>" + DAYS.map((d) => `<th>${d.slice(0, 3)}</th>`).join("") + "</tr>";
+  table.appendChild(thead);
 
-    const chip = el("div", "day-chip", code ? code.Code : "—");
-    if (code) chip.title = code.Libelle;
-    cell.appendChild(chip);
-
-    if (info.heures > 0) cell.appendChild(el("div", "day-hours", formatH(info.heures)));
-
-    cell.addEventListener("click", () => openCodeDialog(week.id, day, week[day]));
-    grid.appendChild(cell);
-  });
-  card.appendChild(grid);
-  return card;
-}
-
-/* ------------------------------------------------------------------ */
-/* Dialogue de sélection de code horaire                               */
-/* ------------------------------------------------------------------ */
-
-const codeDialog = $("code-dialog");
-
-function openCodeDialog(semaineId, jour, currentCodeId) {
-  editingCell = { semaineId, jour };
-  const sel = $("code-select");
-  const options = ['<option value="">— (aucun)</option>']
-    .concat(state.data.codes.map((c) =>
-      `<option value="${c.id}">${escapeHtml(c.Code)} — ${escapeHtml(c.Libelle)}</option>`));
-  sel.innerHTML = options.join("");
-  sel.value = currentCodeId || "";
-  $("code-error").hidden = true;
-  codeDialog.showModal();
-}
-
-$("code-cancel-btn").addEventListener("click", () => codeDialog.close());
-
-$("code-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errEl = $("code-error");
-  errEl.hidden = true;
-  const btn = $("code-save-btn");
-  btn.disabled = true;
-  try {
-    const value = $("code-select").value;
-    await api("PATCH", `/api/cadre/planning/${editingCell.semaineId}`, {
-      jour: editingCell.jour,
-      codeId: value ? Number(value) : null,
+  const tbody = document.createElement("tbody");
+  for (const week of weeks) {
+    const tr = document.createElement("tr");
+    tr.appendChild(el("th", "", frDate(week.Semaine_debut)));
+    DAYS.forEach((day) => {
+      tr.appendChild(codeCell(week.id, day, week[day] || null));
     });
-    codeDialog.close();
-    await refresh();
-  } catch (err) {
-    errEl.textContent = err.message;
-    errEl.hidden = false;
-  } finally {
-    btn.disabled = false;
+    tbody.appendChild(tr);
   }
-});
+  table.appendChild(tbody);
+  return table;
+}
+
+/* ------------------------------------------------------------------ */
+/* Onglet Planning (grille de tout le service)                        */
+/* ------------------------------------------------------------------ */
+
+function renderPlanningTab() {
+  const container = $("planning-service");
+  container.innerHTML = "";
+
+  const controls = el("div", "planning-controls");
+  const dateInput = document.createElement("input");
+  dateInput.type = "date";
+  dateInput.value = state.planningStart || isoDate(new Date());
+  dateInput.addEventListener("change", () => {
+    state.planningStart = dateInput.value;
+    renderPlanningTab();
+  });
+  const todayBtn = el("button", "btn btn-ghost", "Aujourd'hui");
+  todayBtn.type = "button";
+  todayBtn.addEventListener("click", () => { state.planningStart = isoDate(new Date()); renderPlanningTab(); });
+  const prevBtn = el("button", "btn btn-ghost", "◀ Préc.");
+  prevBtn.type = "button";
+  prevBtn.addEventListener("click", () => shiftMonth(-1));
+  const nextBtn = el("button", "btn btn-ghost", "Suiv. ▶");
+  nextBtn.type = "button";
+  nextBtn.addEventListener("click", () => shiftMonth(1));
+  controls.append(dateInput, todayBtn, prevBtn, nextBtn);
+  container.appendChild(controls);
+
+  const range = getMonthRange(state.planningStart || isoDate(new Date()));
+  const days = [];
+  for (let i = 0; i < range.numDays; i++) days.push(addDaysIso(range.startKey, i));
+
+  const periodes = periodesDuService()
+    .filter((p) => !(p.Au && p.Au < range.startKey) && !(p.Du && p.Du > range.endKey))
+    .sort((a, b) => `${a.Etudiant.nom}${a.Etudiant.prenom}`.localeCompare(`${b.Etudiant.nom}${b.Etudiant.prenom}`));
+
+  if (!periodes.length) {
+    container.appendChild(el("p", "empty", "Aucun étudiant sur ce service pour ce mois."));
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "service-planning";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headRow.appendChild(el("th", "student-col", "Étudiant"));
+  for (const dk of days) {
+    headRow.appendChild(el("th", "", dayNum(dk)));
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const p of periodes) {
+    const dayMap = buildDayMap(p.id);
+    const tr = document.createElement("tr");
+    const th = el("th", "student-col");
+    th.appendChild(el("div", "", `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim()));
+    th.appendChild(el("div", "etu-meta-small", [p.Niveau, p.Tuteur].filter(Boolean).join(" · ")));
+    tr.appendChild(th);
+    for (const dk of days) {
+      if ((p.Du && dk < p.Du) || (p.Au && dk > p.Au)) {
+        tr.appendChild(el("td", "hors-periode", ""));
+        continue;
+      }
+      const entry = dayMap.get(dk);
+      if (!entry) {
+        tr.appendChild(el("td", "", "—"));
+      } else {
+        tr.appendChild(codeCell(entry.semaineId, entry.jour, entry.codeId));
+      }
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function shiftMonth(delta) {
+  const cur = state.planningStart ? new Date(state.planningStart + "T00:00:00") : new Date();
+  cur.setMonth(cur.getMonth() + delta);
+  state.planningStart = isoDate(cur);
+  renderPlanningTab();
+}
+
+function getMonthRange(key) {
+  const d = new Date(key + "T00:00:00");
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return { startKey: isoDate(first), endKey: isoDate(last), numDays: last.getDate() };
+}
+
+/** Associe chaque jour (ISO) d'une période à sa case de planning (semaine + colonne). */
+function buildDayMap(periodeId) {
+  const map = new Map();
+  const weeks = state.data.semaines.filter((s) => s.Periode === periodeId);
+  for (const week of weeks) {
+    DAYS.forEach((day, i) => {
+      const dayIso = addDaysIso(week.Semaine_debut, i);
+      map.set(dayIso, { semaineId: week.id, jour: day, codeId: week[day] || null });
+    });
+  }
+  return map;
+}
+
+/* ------------------------------------------------------------------ */
+/* Case de planning éditable (clic -> liste déroulante, comme dans Grist) */
+/* ------------------------------------------------------------------ */
+
+function codeCell(semaineId, jour, codeId) {
+  const codeById = new Map(state.data.codes.map((c) => [c.id, c]));
+  const td = document.createElement("td");
+  td.className = "code-cell";
+
+  function renderText() {
+    td.innerHTML = "";
+    const code = codeById.get(codeId);
+    td.textContent = code ? code.Code : "—";
+    if (code) td.title = code.Libelle;
+  }
+  renderText();
+
+  td.addEventListener("click", () => {
+    const select = document.createElement("select");
+    const options = ['<option value="">—</option>']
+      .concat(state.data.codes.map((c) => `<option value="${c.id}">${escapeHtml(c.Code)} — ${escapeHtml(c.Libelle)}</option>`));
+    select.innerHTML = options.join("");
+    select.value = codeId || "";
+    td.innerHTML = "";
+    td.appendChild(select);
+    select.focus();
+
+    let done = false;
+    async function commit() {
+      if (done) return;
+      done = true;
+      const value = select.value;
+      const newCodeId = value ? Number(value) : null;
+      if (newCodeId === codeId) { renderText(); return; }
+      select.disabled = true;
+      try {
+        await api("PATCH", `/api/cadre/planning/${semaineId}`, { jour, codeId: newCodeId });
+        await refresh();
+      } catch (err) {
+        alert(err.message);
+        renderText();
+      }
+    }
+    function cancel() {
+      if (done) return;
+      done = true;
+      renderText();
+    }
+    select.addEventListener("change", commit);
+    select.addEventListener("blur", () => setTimeout(cancel, 0));
+  });
+
+  return td;
+}
+
+/* ------------------------------------------------------------------ */
+/* Onglet Évaluation                                                   */
+/* ------------------------------------------------------------------ */
+
+function renderEvaluationTab() {
+  const container = $("evaluation-list");
+  container.innerHTML = "";
+  const periodes = periodesDuService().sort((a, b) => (b.Du || "").localeCompare(a.Du || ""));
+
+  if (!periodes.length) {
+    container.appendChild(el("p", "empty", "Aucun étudiant sur ce service."));
+    return;
+  }
+
+  for (const p of periodes) {
+    const row = el("div", "pending-row");
+    const main = el("div", "pending-main");
+    main.appendChild(el("div", "sortie-title", `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim()));
+    main.appendChild(el("div", "sortie-meta", `${frDate(p.Du)} → ${frDate(p.Au)}`));
+    row.appendChild(main);
+
+    if (p.Lien_evaluation && p.Etudiant.email) {
+      const a = document.createElement("a");
+      a.className = "btn btn-primary";
+      a.textContent = "Envoyer l'évaluation";
+      a.href = mailtoEvaluation(p);
+      row.appendChild(a);
+    } else if (!p.Lien_evaluation) {
+      row.appendChild(badge("Lien non généré", "warn"));
+    } else {
+      row.appendChild(badge("Email étudiant manquant", "warn"));
+    }
+    container.appendChild(row);
+  }
+}
+
+function mailtoEvaluation(p) {
+  const service = state.data.services.find((s) => s.id === p.Service);
+  const serviceName = service ? service.Nom : "";
+  const subject = `Votre avis sur votre stage${serviceName ? " de " + serviceName : ""} (${frDate(p.Du)} - ${frDate(p.Au)})`;
+  const body = `Bonjour ${p.Etudiant.prenom},
+
+Votre stage touche à sa fin.
+
+Service : ${serviceName || "-"}
+Période : du ${frDate(p.Du)} au ${frDate(p.Au)}
+
+Nous vous serions reconnaissants de prendre quelques minutes pour répondre à notre questionnaire d'évaluation de stage.
+
+${p.Lien_evaluation}
+
+Vos réponses restent confidentielles. Merci pour votre implication durant ce stage.`;
+  return `mailto:${encodeURIComponent(p.Etudiant.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 /* ------------------------------------------------------------------ */
 /* Utilitaires                                                         */
@@ -326,6 +526,10 @@ function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+function badge(text, kind) {
+  return el("span", "badge " + kind, text);
 }
 
 function escapeHtml(str) {
