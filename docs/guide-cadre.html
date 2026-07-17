@@ -66,8 +66,9 @@
       <h2>2. Se connecter à l'espace cadre</h2>
       <p>Rendez-vous sur <a href="espace-cadre.html">espace-cadre.html</a> et connectez-vous avec votre <strong>adresse email</strong> et votre <strong>code d'accès personnel</strong> (transmis par l'administrateur de l'application).</p>
       <p>Vous pouvez aussi recevoir un <strong>lien de connexion directe</strong> intégrant déjà vos identifiants : un simple clic vous connecte, sans ressaisir email ni code.</p>
-      <p>Vous ne voyez et ne modifiez <strong>que les services dont vous êtes responsable</strong>. Si vous couvrez plusieurs services, un sélecteur en haut de page permet de passer de l'un à l'autre.</p>
+      <p>Vous ne voyez et ne modifiez <strong>que les services dont vous êtes responsable</strong>. Si vous couvrez plusieurs services, deux sélecteurs en haut de page permettent de passer de l'un à l'autre : d'abord le <strong>site</strong> (ex. Hôpital de Mercy, Hôpital de Hayange…), puis le <strong>service</strong> — filtré selon le site choisi, pour éviter toute confusion entre services homonymes de sites différents. Le sélecteur de site n'apparaît que si vous couvrez plusieurs sites.</p>
       <div class="callout warn">Le code d'accès donne accès à toutes les données de votre service : gardez-le confidentiel, comme un mot de passe.</div>
+      <p>Vous êtes étudiant par erreur sur cette page ? <a href="index.html">Accédez à l'espace étudiant</a>.</p>
     </section>
 
     <section id="onglets">
@@ -98,8 +99,14 @@
 
     <section id="planning">
       <h2>5. Planning de service</h2>
-      <p>Cet onglet affiche tous les étudiants du service sur une <strong>fenêtre glissante de 30 jours</strong> : choisissez une date de départ, ou naviguez avec « Aujourd'hui » / « ◀ Préc. 30j » / « Suiv. 30j ▶ ».</p>
-      <p>Cliquez sur une case pour ouvrir la liste des codes horaires disponibles et l'affecter à ce jour.</p>
+      <p>Cet onglet affiche tous les étudiants du service sur une <strong>fenêtre glissante de 30 jours</strong> : choisissez une date de départ, ou naviguez avec « Aujourd'hui » / « ◀ Préc. 30j » / « Suiv. 30j ▶ ». Les dates du stage de chaque étudiant s'affichent sous son nom.</p>
+      <h3>Édition façon tableur</h3>
+      <p>Une <strong>palette de codes</strong> horaires s'affiche au-dessus du tableau. Deux façons de modifier le planning :</p>
+      <ul>
+        <li><strong>Peindre</strong> : cliquez sur un code de la palette puis cliquez (ou cliquez-glissez sur plusieurs cases) pour l'appliquer. La gomme efface le contenu d'une case.</li>
+        <li><strong>Sélection</strong> : glissez sur les cases ou utilisez Maj+clic pour sélectionner un bloc, puis <span class="code">Ctrl+C</span> / <span class="code">Ctrl+V</span> pour copier-coller (une case copiée remplit toute la sélection collée), <span class="code">Suppr</span> pour effacer, les flèches pour vous déplacer, <span class="code">Échap</span> pour désélectionner.</li>
+      </ul>
+      <p>Un <strong>double-clic</strong> sur une case ouvre la liste déroulante classique des codes, en repli si vous préférez cette méthode.</p>
       <p>Les <strong>week-ends et jours fériés</strong> sont grisés pour les repérer d'un coup d'œil, à l'écran comme à l'impression. Une légende des codes horaires (avec leurs horaires) s'affiche en bas du tableau.</p>
       <div class="callout">Le bouton <strong>🖨 Imprimer</strong> génère une version prête à imprimer ou à archiver : en-tête avec le nom du service, les dates, votre nom et la date de génération.</div>
     </section>
