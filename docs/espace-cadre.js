@@ -1,6 +1,6 @@
 /* Espace cadre — gestion des étudiants du service : planning, validations, fiches */
 
-const APP_VERSION = "v11"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
+const APP_VERSION = "v12"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -26,6 +26,7 @@ const state = {
   email: sessionStorage.getItem("cadre_email") || null,
   code: sessionStorage.getItem("cadre_code") || null,
   data: null, // { services, niveaux, motifs, moi, periodes, semaines, codes, sorties }
+  selectedSite: null,
   selectedServiceId: null,
   activeTab: "declarations",
   dossierCategory: "cours", // 'passe' | 'cours' | 'avenir'
@@ -167,6 +168,14 @@ function renderMoiInfo() {
   }
 }
 
+function updateServiceSubtitle() {
+  const service = state.data.services.find((s) => s.id === state.selectedServiceId);
+  const subtitle = $("service-subtitle");
+  if (subtitle && service) {
+    subtitle.textContent = escapeHtml(service.Nom);
+  }
+}
+
 function renderServiceSelect() {
   const sel = $("service-select");
   const services = state.data.services;
@@ -177,8 +186,10 @@ function renderServiceSelect() {
   sel.value = state.selectedServiceId;
   sel.onchange = () => {
     state.selectedServiceId = Number(sel.value);
+    updateServiceSubtitle();
     renderActiveTab();
   };
+  updateServiceSubtitle();
 }
 
 function periodesDuService() {

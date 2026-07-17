@@ -4,15 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Espace cadre</title>
-  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="styles.css?v=19">
   <style>
-    .moi-info { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0.5rem 0.75rem; background: var(--gris-fond); border-radius: var(--radius); font-size: 0.9rem; }
-    .moi-info .moi-nom { font-weight: 700; }
+    .cadre-service-select { margin: 0 0 1.5rem; }
+    .cadre-service-select select { padding: 0.6rem 0.75rem; border: 1px solid var(--gris-bordure); border-radius: 4px; min-width: 100%; font-size: 0.95rem; background: var(--blanc); }
+
+    .moi-info { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1.5rem; padding: 1rem; background: var(--blanc); border: 1px solid var(--gris-bordure); border-radius: var(--radius); font-size: 0.9rem; }
+    .moi-info .moi-nom { font-weight: 700; font-size: 1rem; }
     .moi-info .moi-tel { color: var(--texte-doux); }
     .moi-info input[type="tel"] { padding: 0.3rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; width: 12rem; }
     .moi-info .btn-small { padding: 0.25rem 0.6rem; font-size: 0.82rem; }
-    .cadre-service-select { margin: 0 0 1rem; }
-    .cadre-service-select select { padding: 0.5rem 0.75rem; border: 1px solid var(--gris-bordure); border-radius: 4px; min-width: 260px; }
     .etu-card { background: var(--blanc); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1rem 1.25rem; margin-bottom: 1rem; }
     .etu-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
     .etu-nom { font-weight: 700; font-size: 1.05rem; }
@@ -27,8 +28,9 @@
     .save-hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 0.25rem; }
     .anonymat-badge { font-family: ui-monospace, monospace; font-weight: 700; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; }
 
-    .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1rem 0; flex-wrap: wrap; }
-    .main-tab { background: none; border: none; padding: 0.6rem 1rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1.5rem 0 1rem; flex-wrap: wrap; }
+    .main-tab { background: none; border: none; padding: 0.6rem 1rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color 0.15s; }
+    .main-tab:hover { color: var(--bleu); }
     .main-tab.active { color: var(--bleu); border-bottom-color: var(--bleu); }
 
     .sub-tabs { display: flex; gap: 0.4rem; margin: 0.75rem 0 0.5rem; }
@@ -154,21 +156,19 @@
     <header class="app-header">
       <div>
         <h1>Espace cadre</h1>
-        <p class="subtitle">Étudiants de votre service</p>
+        <p class="subtitle" id="service-subtitle">Sélectionnez votre service</p>
       </div>
       <div class="header-actions">
-        <button id="refresh-btn" class="btn btn-ghost">Actualiser</button>
         <button id="logout-btn" class="btn btn-ghost">Se déconnecter</button>
       </div>
     </header>
 
     <main class="content">
-      <div id="moi-info" class="moi-info"></div>
-
       <div class="cadre-service-select">
-        <label for="service-select"><strong>Service</strong></label><br>
         <select id="service-select"></select>
       </div>
+
+      <div id="moi-info" class="moi-info"></div>
 
       <div id="print-header"></div>
 
@@ -319,6 +319,6 @@
   </dialog>
 
   <script src="config.js?v=18"></script>
-  <script src="espace-cadre.js?v=11"></script>
+  <script src="espace-cadre.js?v=12"></script>
 </body>
 </html>
