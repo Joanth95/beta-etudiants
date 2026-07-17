@@ -23,8 +23,10 @@
  *   DELETE /api/sorties/:id                    -> suppression d'une de SES déclarations
  *
  * Espace cadre (email + code d'accès personnel dans X-Cadre-Email / X-Cadre-Code,
- * UTILISATEURS.Code_acces) : un cadre ne voit/modifie que les services dont il
- * est le Cadre_ref (SERVICES.Cadre_ref).
+ * UTILISATEURS.Code_acces) : un cadre voit/modifie les services dont il est le
+ * cadre principal (SERVICES.Cadre_ref), ceux où il figure en cadre secondaire
+ * (SERVICES.Cadres_secondaires, liste de références) et, s'il est le CSS du pôle
+ * (Pole.CSS, exposé par la formule SERVICES.Pole_CSS), tous les services du pôle.
  *   POST   /api/cadre/login    { email, code }         -> payload des services du cadre
  *   GET    /api/cadre/data                             -> payload complet (rafraîchissement)
  *   PATCH  /api/cadre/sorties/:id   { Valide }         -> valider/invalider une déclaration
@@ -49,7 +51,7 @@ const DAY_COLUMNS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
 
 const CIVILITES = ["Madame", "Monsieur"];
 const FORMATIONS = ["AIDE SOIGNANT", "INFIRMIER", "AUTRE"];
-const NIVEAUX = ["L1", "L2", "L3", "M1", "M2", "Aide-Soignant"];
+const NIVEAUX = ["ESI L1", "ESI L2", "ESI L3", "M1", "M2", "Aide-Soignant"];
 // Motifs proposés à l'étudiant ; « Retard » est déduit par la formule Grist
 // Ajustement_h ; « Sortie de stage » compte ou non selon la case Compte_stage
 const MOTIFS = ["Rattrapage", "Retard", "Sortie de stage"];
@@ -183,6 +185,13 @@ async function authenticateCode(env, rawCode) {
   return { rowId: records[0].id, code, fields: records[0].fields };
 }
 
+/** Ids contenus dans une cellule Grist de type Référence (nombre) ou Liste de références (["L", id, ...]). */
+function refIds(value) {
+  if (typeof value === "number" && value > 0) return [value];
+  if (Array.isArray(value) && value[0] === "L") return value.slice(1).filter((id) => typeof id === "number");
+  return [];
+}
+
 /** Authentifie un cadre par email + code d'accès personnel (UTILISATEURS.Code_acces). */
 async function authenticateCadre(env, rawEmail, rawCode) {
   const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
@@ -197,7 +206,12 @@ async function authenticateCadre(env, rawEmail, rawCode) {
   if (!match) throw httpError(401, "Email ou code d'accès invalide");
 
   const services = await gristAll(env, T_SERVICES);
-  const myServices = services.filter((s) => s.fields.Cadre_ref === match.id && s.fields.Recoit_des_etudiant);
+  const myServices = services.filter((s) => {
+    if (!s.fields.Recoit_des_etudiant) return false;
+    if (s.fields.Cadre_ref === match.id) return true;
+    if (refIds(s.fields.Cadres_secondaires).includes(match.id)) return true;
+    return refIds(s.fields.Pole_CSS).includes(match.id);
+  });
   if (!myServices.length) {
     throw httpError(403, "Aucun service ouvert aux étudiants ne vous est rattaché : contactez l'administrateur");
   }
@@ -804,7 +818,7 @@ async function inscription(request, env) {
   const du = String(p.Du || "");
   const au = String(p.Au || "");
   const niveau = NIVEAUX.includes(p.Niveau) ? p.Niveau : "";
-  const tuteur = cleanText(p.Tuteur, 80);
+  const referent = cleanText(p.Referent_pedagogique, 80);
 
   if (!nom || !prenom) throw httpError(400, "Nom et prénom obligatoires");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ddn)) throw httpError(400, "Date de naissance invalide");
@@ -875,7 +889,7 @@ async function inscription(request, env) {
         Au: auEpoch,
         Niveau: niveau,
         Service: serviceId,
-        Tuteur: tuteur,
+        Referent_pedagogique: referent,
         A_FAIRE: aFaireInscription,
       },
     }],
