@@ -572,6 +572,7 @@ async function buildCadrePayload(env, cadre) {
         Lien_evaluation: p.fields.Lien_evaluation || "",
         Evaluation_envoyee: !!p.fields.Evaluation_envoyee,
         Evaluation_repondue: periodesAvecReponse.has(p.id),
+        Alertes: computeAlertesPeriode(p.id, semaines, codesById),
       };
     }),
     semaines: semainesData.map(({ s, jours }) => {
@@ -919,6 +920,118 @@ function jourInfo(codeRec, dateIso, periodeId, sortiesByJour, feriesSet) {
   // Il n'est PAS compté double ; il est déduit du volume à réaliser (A_FAIRE).
   // Un férié travaillé produit donc un surplus = droit à un jour de récupération.
   return { heures: Math.round(h * 100) / 100, ferie };
+}
+
+/* ------------------------------------------------------------------ */
+/* Alertes de conformité au droit du travail (repos, durées)           */
+/* Contrôle indicatif à partir des codes horaires posés sur le         */
+/* planning ; ne remplace pas une vérification humaine.                */
+/* ------------------------------------------------------------------ */
+
+const DUREE_MAX_HEBDO = 48; // heures — Code du travail, art. L3121-20
+const REPOS_MIN_QUOTIDIEN = 11; // heures entre deux postes — art. L3131-1
+const REPOS_MIN_HEBDO = 35; // heures consécutives (24h + 11h) — art. L3132-2
+
+function timeToMinutes(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function addDaysIso(iso, n) {
+  return epochToIso(Date.parse(iso + "T00:00:00Z") / 1000 + n * 86400);
+}
+
+function mondayOfIso(iso) {
+  const day = new Date(iso + "T00:00:00Z").getUTCDay(); // 0 = dimanche .. 6 = samedi
+  return addDaysIso(iso, day === 0 ? -6 : 1 - day);
+}
+
+function frDateShort(iso) {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function formatH(hours) {
+  if (hours == null) return "0h";
+  const neg = hours < 0;
+  const totalMin = Math.round(Math.abs(hours) * 60);
+  const hh = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  return (neg ? "-" : "") + hh + "h" + (mm ? String(mm).padStart(2, "0") : "");
+}
+
+/** Jours (ISO, triés) d'une période avec le code horaire posé ce jour-là. */
+function joursDetailPeriode(periodeId, semaines, codesById) {
+  const jours = [];
+  for (const s of semaines) {
+    if (s.fields.Periode !== periodeId) continue;
+    const debut = s.fields.Semaine_debut;
+    if (!debut) continue;
+    DAY_COLUMNS.forEach((d, i) => {
+      const codeRec = codesById.get(s.fields[d]);
+      jours.push({ iso: epochToIso(debut + i * 86400), code: codeRec ? codeRec.fields : null });
+    });
+  }
+  return jours.sort((a, b) => a.iso.localeCompare(b.iso));
+}
+
+/** Calcule les alertes de conformité d'une période : repos entre deux postes,
+ *  durée hebdomadaire max, présence d'un repos hebdomadaire. */
+function computeAlertesPeriode(periodeId, semaines, codesById) {
+  const alertes = [];
+  const jours = joursDetailPeriode(periodeId, semaines, codesById);
+
+  // 1) Repos minimal entre deux postes travaillés consécutifs (jours calendaires successifs).
+  let prev = null;
+  for (const j of jours) {
+    const travaille = j.code && j.code.Heure_debut && j.code.Heure_fin;
+    if (travaille) {
+      if (prev && addDaysIso(prev.iso, 1) === j.iso) {
+        const finPrev = timeToMinutes(prev.code.Heure_fin);
+        const debutPrev = timeToMinutes(prev.code.Heure_debut);
+        const debutCur = timeToMinutes(j.code.Heure_debut);
+        // Un code de nuit (ex. 19:00–07:00) se termine le lendemain matin :
+        // on décale sa fin d'une journée avant de calculer le repos.
+        const finPrevAbs = (finPrev <= debutPrev ? 24 * 60 : 0) + finPrev;
+        const reposH = (24 * 60 + debutCur - finPrevAbs) / 60;
+        if (reposH < REPOS_MIN_QUOTIDIEN) {
+          alertes.push(`Repos insuffisant entre le ${frDateShort(prev.iso)} (fin ${prev.code.Heure_fin}) `
+            + `et le ${frDateShort(j.iso)} (début ${j.code.Heure_debut}) : ${formatH(reposH)} au lieu de ${REPOS_MIN_QUOTIDIEN}h minimum.`);
+        }
+      }
+      prev = j;
+    }
+  }
+
+  // 2) Durée hebdomadaire et repos hebdomadaire (semaine calendaire lundi → dimanche).
+  const heuresParSemaine = new Map();
+  const joursTravaillesParSemaine = new Map();
+  for (const j of jours) {
+    if (!j.code) continue;
+    const lundi = mondayOfIso(j.iso);
+    if (j.code.Compte_stage) {
+      const h = (j.code.Duree_heures || 0) + (j.code.Ajustement_h || 0);
+      heuresParSemaine.set(lundi, (heuresParSemaine.get(lundi) || 0) + h);
+    }
+    if (j.code.Heure_debut && j.code.Heure_fin) {
+      joursTravaillesParSemaine.set(lundi, (joursTravaillesParSemaine.get(lundi) || 0) + 1);
+    }
+  }
+  for (const [lundi, heures] of heuresParSemaine) {
+    if (heures > DUREE_MAX_HEBDO) {
+      alertes.push(`Semaine du ${frDateShort(lundi)} : ${formatH(heures)} travaillées, `
+        + `au-delà du maximum légal de ${DUREE_MAX_HEBDO}h.`);
+    }
+  }
+  for (const [lundi, nbJours] of joursTravaillesParSemaine) {
+    if (nbJours >= 7) {
+      alertes.push(`Semaine du ${frDateShort(lundi)} : aucun jour de repos posé sur les 7 jours `
+        + `(repos hebdomadaire de ${REPOS_MIN_HEBDO}h non garanti).`);
+    }
+  }
+
+  return alertes;
 }
 
 /** Nombre de jours fériés (ISO) compris dans l'intervalle [du, au] (epoch). */

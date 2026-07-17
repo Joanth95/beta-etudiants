@@ -1,7 +1,7 @@
 /* Espace cadre — gestion des étudiants du service : planning, validations, fiches */
 /* © Joan Thuillier — Tous droits réservés. Voir LICENSE à la racine du dépôt. */
 
-const APP_VERSION = "v18"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
+const APP_VERSION = "v20"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -977,13 +977,23 @@ function renderPlanningTab() {
 
   planningGrid = { rows: [] };
   const tbody = document.createElement("tbody");
+  const alertesGlobal = [];
   periodes.forEach((p, r) => {
     const dayMap = buildDayMap(p.id);
+    const nomEtu = `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim();
+    const alertes = p.Alertes || [];
+    for (const a of alertes) alertesGlobal.push(`${nomEtu} — ${a}`);
+
     const tr = document.createElement("tr");
     const th = el("th", "student-col");
-    th.appendChild(el("div", "", `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim()));
+    th.appendChild(el("div", "", nomEtu));
     th.appendChild(el("div", "etu-meta-small", `${frDateCourt(p.Du)} → ${frDateCourt(p.Au)}`));
     th.appendChild(el("div", "etu-meta-small", [p.Niveau, p.Tuteur].filter(Boolean).join(" · ")));
+    if (alertes.length) {
+      const alerteBadge = badge(`⚠️ ${alertes.length} alerte${alertes.length > 1 ? "s" : ""}`, "warn");
+      alerteBadge.title = alertes.join("\n");
+      th.appendChild(alerteBadge);
+    }
     tr.appendChild(th);
 
     const cells = [];
@@ -1017,6 +1027,14 @@ function renderPlanningTab() {
   table.addEventListener("mousedown", onPlanningMouseDown);
   table.addEventListener("mouseover", onPlanningMouseOver);
   table.addEventListener("dblclick", onPlanningDblClick);
+
+  if (alertesGlobal.length) {
+    const panel = el("div", "planning-alertes");
+    panel.appendChild(el("div", "planning-alertes-title",
+      `⚠️ ${alertesGlobal.length} alerte${alertesGlobal.length > 1 ? "s" : ""} de conformité (droit du travail)`));
+    for (const msg of alertesGlobal) panel.appendChild(el("div", "planning-alertes-item", msg));
+    container.appendChild(panel);
+  }
 
   container.appendChild(table);
   container.appendChild(renderCodesLegend());
