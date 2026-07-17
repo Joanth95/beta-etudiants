@@ -38,6 +38,8 @@
  *   PATCH  /api/cadre/profil  { Telephone }                   -> modifie son propre numéro de téléphone
  *   PATCH  /api/cadre/services/:id  { codes: [ids] }          -> codes horaires actifs du service
  *                                                                (SERVICES.Codes_horaires ; vide = tous)
+ *   POST   /api/cadre/codes  { Code, Libelle, ... }           -> crée un code horaire (pas de doublon,
+ *                                                                pas de suppression possible)
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -156,6 +158,9 @@ async function route(request, env) {
     const svm = path.match(/^\/api\/cadre\/services\/(\d+)$/);
     if (request.method === "PATCH" && svm) {
       return updateCodesService(request, env, cadre, Number(svm[1]));
+    }
+    if (request.method === "POST" && path === "/api/cadre/codes") {
+      return creerCodeHoraire(request, env, cadre);
     }
     throw httpError(404, "Route inconnue");
   }
@@ -758,6 +763,55 @@ async function updateCodesService(request, env, cadre, serviceId) {
     Codes_horaires: ids.length ? ["L", ...ids] : null,
   });
   return json({ ok: true, codes: ids });
+}
+
+/** Le cadre crée un code horaire (table CODES_HORAIRES, partagée entre tous
+ * les services). Doublon refusé sur le texte du Code ; aucune suppression
+ * possible via l'espace cadre. Si serviceId est fourni et que le service a
+ * une liste de codes explicite, le nouveau code y est ajouté. */
+async function creerCodeHoraire(request, env, cadre) {
+  const body = await request.json().catch(() => ({}));
+  const code = cleanText(body.Code, 10).toUpperCase();
+  const libelle = cleanText(body.Libelle, 80);
+  const debut = String(body.Heure_debut || "").trim();
+  const fin = String(body.Heure_fin || "").trim();
+
+  if (!code) throw httpError(400, "Le code est obligatoire");
+  if (!libelle) throw httpError(400, "Le libellé est obligatoire");
+  // Les deux heures ensemble, ou aucune (code sans horaire type absence)
+  if (!!debut !== !!fin) throw httpError(400, "Renseignez l'heure de début ET de fin, ou aucune des deux");
+  if (debut && (!TIME_RE.test(debut) || !TIME_RE.test(fin))) {
+    throw httpError(400, "Heures invalides (format attendu : HH:MM)");
+  }
+
+  const existants = await gristAll(env, T_CODES);
+  if (existants.some((c) => (c.fields.Code || "").trim().toUpperCase() === code)) {
+    throw httpError(409, `Le code « ${code} » existe déjà : reprenez-le dans la liste des codes disponibles`);
+  }
+
+  const created = await grist(env, "POST", `/tables/${T_CODES}/records`, {
+    records: [{ fields: {
+      Code: code,
+      Libelle: libelle,
+      Heure_debut: debut,
+      Heure_fin: fin,
+      Compte_stage: body.Compte_stage !== false,
+    } }],
+  });
+  const newId = created.records[0].id;
+
+  // Active le nouveau code dans le service demandé si sa liste est explicite
+  // (liste vide = tous les codes : rien à faire, il est déjà inclus).
+  const serviceId = Number(body.serviceId);
+  if (cadre.serviceIds.has(serviceId)) {
+    const service = cadre.services.find((s) => s.id === serviceId);
+    const actifs = refIds(service.fields.Codes_horaires);
+    if (actifs.length) {
+      await gristUpdate(env, T_SERVICES, serviceId, { Codes_horaires: ["L", ...actifs, newId] });
+    }
+  }
+
+  return json({ id: newId }, 201);
 }
 
 /** Le cadre modifie son propre numéro de téléphone (UTILISATEURS.Telephone). */

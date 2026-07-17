@@ -28,9 +28,18 @@
     .pending-row:last-child { border-bottom: none; }
     .pending-main { flex: 1; }
     .save-hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 0.25rem; }
-    .code-toggle-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--gris-bordure); cursor: pointer; font-size: 0.92rem; }
-    .code-toggle-row:last-of-type { border-bottom: none; }
-    #codes-service-list { padding: 0.6rem 1rem 1rem; }
+    #codes-service-list { padding: 0.9rem 1rem 1rem; }
+    .dual-list { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .dual-list-col { flex: 1 1 260px; min-width: 240px; }
+    .dual-list-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
+    .dual-list-items { border: 1px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.35rem; min-height: 8rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .dual-list-item { text-align: left; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.35rem 0.55rem; font-size: 0.88rem; cursor: pointer; }
+    .dual-list-item:hover { border-color: var(--bleu); color: var(--bleu); }
+    .nouveau-code { margin-top: 1.25rem; border-top: 1px solid var(--gris-bordure); padding-top: 0.9rem; }
+    .nouveau-code-form { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; }
+    .nouveau-code-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--texte-doux); }
+    .nouveau-code-form input { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; }
+    .nouveau-code-form .checkbox-label { flex-direction: row; align-items: center; gap: 0.4rem; }
     .anonymat-badge { font-family: ui-monospace, monospace; font-weight: 700; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; }
 
     .main-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--gris-bordure); margin: 1.5rem 0 1rem; flex-wrap: wrap; }
@@ -216,7 +225,7 @@
         </div>
 
         <div id="tab-codes" hidden>
-          <p class="section-note">Choisissez les codes horaires utilisés dans ce service : seuls les codes cochés seront proposés dans le planning. Si tous les codes sont cochés, les nouveaux codes créés plus tard seront proposés automatiquement.</p>
+          <p class="section-note">Cliquez sur un code pour le faire passer d'une liste à l'autre, puis Enregistrer : seuls les codes « utilisés » seront proposés dans le planning de ce service. Vous pouvez aussi créer un nouveau code horaire.</p>
           <div id="codes-service-list" class="decl-card"></div>
         </div>
       </section>
@@ -334,6 +343,6 @@
   </dialog>
 
   <script src="config.js?v=18"></script>
-  <script src="espace-cadre.js?v=15"></script>
+  <script src="espace-cadre.js?v=16"></script>
 </body>
 </html>

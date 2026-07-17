@@ -1,7 +1,7 @@
 /* Espace cadre — gestion des étudiants du service : planning, validations, fiches */
 /* © Joan Thuillier — Tous droits réservés. Voir LICENSE à la racine du dépôt. */
 
-const APP_VERSION = "v15"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
+const APP_VERSION = "v16"; // à incrémenter à chaque mise à jour (cf. ?v= dans espace-cadre.html)
 const API = window.CONFIG.API_URL.replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -1312,58 +1312,146 @@ function renderEvaluationTab() {
 /* Onglet Codes horaires (codes actifs du service)                     */
 /* ------------------------------------------------------------------ */
 
+// Sélection en cours (non enregistrée) de l'onglet : Set d'ids « utilisés »
+// par service, pour survivre aux re-rendus tant qu'on n'a pas enregistré.
+const codesTabDraft = {}; // serviceId -> Set(codeId)
+
 function renderCodesTab() {
   const container = $("codes-service-list");
   container.innerHTML = "";
   const service = state.data.services.find((s) => s.id === state.selectedServiceId);
   if (!service) return;
 
-  const actifs = new Set(Array.isArray(service.Codes) ? service.Codes : []);
-  const tousActifs = !actifs.size; // liste vide = tous les codes proposés
-
-  const checkboxes = new Map();
-  for (const c of state.data.codes) {
-    const row = el("label", "code-toggle-row");
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = tousActifs || actifs.has(c.id);
-    checkboxes.set(c.id, cb);
-    row.appendChild(cb);
-    const horaire = (c.Heure_debut && c.Heure_fin) ? ` (${c.Heure_debut}–${c.Heure_fin})` : "";
-    const text = el("span", "");
-    text.appendChild(el("strong", "", c.Code));
-    text.appendChild(document.createTextNode(` — ${c.Libelle}${horaire}`));
-    row.appendChild(text);
-    container.appendChild(row);
+  if (!codesTabDraft[service.id]) {
+    const actifs = Array.isArray(service.Codes) ? service.Codes : [];
+    // Liste vide côté Grist = tous les codes utilisés
+    codesTabDraft[service.id] = new Set(actifs.length ? actifs : state.data.codes.map((c) => c.id));
   }
+  const utilises = codesTabDraft[service.id];
+
+  const libelleCode = (c) => {
+    const horaire = (c.Heure_debut && c.Heure_fin) ? ` (${c.Heure_debut}–${c.Heure_fin})` : "";
+    return `${c.Code} — ${c.Libelle}${horaire}`;
+  };
+
+  const mkColumn = (titre, codes, fleche, action) => {
+    const col = el("div", "dual-list-col");
+    col.appendChild(el("div", "dual-list-title", `${titre} (${codes.length})`));
+    const list = el("div", "dual-list-items");
+    for (const c of codes) {
+      const btn = el("button", "dual-list-item", `${fleche} ${libelleCode(c)}`);
+      btn.type = "button";
+      btn.title = action === "add" ? "Ajouter aux codes utilisés" : "Retirer des codes utilisés";
+      btn.addEventListener("click", () => {
+        if (action === "add") utilises.add(c.id);
+        else utilises.delete(c.id);
+        renderCodesTab();
+      });
+      list.appendChild(btn);
+    }
+    if (!codes.length) list.appendChild(el("p", "empty", "Aucun code."));
+    col.appendChild(list);
+    return col;
+  };
+
+  const dispo = state.data.codes.filter((c) => !utilises.has(c.id));
+  const usedList = state.data.codes.filter((c) => utilises.has(c.id));
+  const wrap = el("div", "dual-list");
+  wrap.appendChild(mkColumn("Codes disponibles", dispo, "▶", "add"));
+  wrap.appendChild(mkColumn("Codes utilisés dans ce service", usedList, "◀", "remove"));
+  container.appendChild(wrap);
 
   const hint = el("p", "save-hint", "");
   const saveBtn = el("button", "btn btn-primary", "Enregistrer");
   saveBtn.type = "button";
   saveBtn.style.marginTop = "0.75rem";
   saveBtn.addEventListener("click", async () => {
-    const coches = [...checkboxes.entries()].filter(([, cb]) => cb.checked).map(([id]) => id);
-    if (!coches.length) {
-      hint.textContent = "Sélectionnez au moins un code horaire.";
+    if (!utilises.size) {
+      hint.textContent = "Gardez au moins un code horaire utilisé.";
       return;
     }
-    // Tous coches = on enregistre « tous » (liste vide) : les codes créés
-    // plus tard dans Grist seront alors proposés automatiquement.
-    const codes = coches.length === state.data.codes.length ? [] : coches;
+    // Tous utilisés = on enregistre « tous » (liste vide) : les codes créés
+    // plus tard seront alors proposés automatiquement.
+    const codes = utilises.size === state.data.codes.length ? [] : [...utilises];
     saveBtn.disabled = true;
     hint.textContent = "";
     try {
       await api("PATCH", `/api/cadre/services/${service.id}`, { codes });
+      delete codesTabDraft[service.id];
       hint.textContent = "Enregistré.";
       await refresh();
     } catch (err) {
       hint.textContent = err.message;
-    } finally {
       saveBtn.disabled = false;
     }
   });
   container.appendChild(saveBtn);
   container.appendChild(hint);
+
+  container.appendChild(renderNouveauCode(service, utilises, hint));
+}
+
+/** Formulaire « créer un code horaire » : le code créé est partagé (visible de
+ *  tous les services) et ajouté d'office aux codes utilisés de ce service.
+ *  Les doublons sont refusés (ici et côté serveur) ; pas de suppression. */
+function renderNouveauCode(service, utilises, hint) {
+  const box = el("div", "nouveau-code");
+  box.appendChild(el("div", "dual-list-title", "Créer un code horaire"));
+  box.appendChild(el("p", "save-hint",
+    "Le nouveau code sera ajouté aux codes utilisés de ce service ; les autres services pourront aussi le reprendre. Un code créé ne peut plus être supprimé."));
+
+  const form = el("div", "nouveau-code-form");
+  const mkInput = (labelTxt, type, attrs = {}) => {
+    const label = el("label", "", labelTxt);
+    const input = document.createElement("input");
+    input.type = type;
+    Object.assign(input, attrs);
+    label.appendChild(input);
+    form.appendChild(label);
+    return input;
+  };
+  const codeInput = mkInput("Code", "text", { maxLength: 10, placeholder: "ex. M12" });
+  const libelleInput = mkInput("Libellé", "text", { maxLength: 80, placeholder: "ex. Matin 12h" });
+  const debutInput = mkInput("De", "time");
+  const finInput = mkInput("À", "time");
+  const compteLabel = el("label", "checkbox-label");
+  const compteInput = document.createElement("input");
+  compteInput.type = "checkbox";
+  compteInput.checked = true;
+  compteLabel.appendChild(compteInput);
+  compteLabel.appendChild(document.createTextNode(" Compte en temps de stage"));
+  form.appendChild(compteLabel);
+
+  const createBtn = el("button", "btn btn-ghost", "+ Créer le code");
+  createBtn.type = "button";
+  createBtn.addEventListener("click", async () => {
+    const code = codeInput.value.trim().toUpperCase();
+    if (code && state.data.codes.some((c) => (c.Code || "").trim().toUpperCase() === code)) {
+      hint.textContent = `Le code « ${code} » existe déjà : reprenez-le dans les codes disponibles.`;
+      return;
+    }
+    createBtn.disabled = true;
+    hint.textContent = "";
+    try {
+      const res = await api("POST", "/api/cadre/codes", {
+        Code: code,
+        Libelle: libelleInput.value.trim(),
+        Heure_debut: debutInput.value,
+        Heure_fin: finInput.value,
+        Compte_stage: compteInput.checked,
+        serviceId: service.id,
+      });
+      utilises.add(res.id);
+      hint.textContent = `Code « ${code} » créé.`;
+      await refresh();
+    } catch (err) {
+      hint.textContent = err.message;
+      createBtn.disabled = false;
+    }
+  });
+  form.appendChild(createBtn);
+  box.appendChild(form);
+  return box;
 }
 
 function mailtoEvaluation(p) {
