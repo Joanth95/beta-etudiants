@@ -412,15 +412,15 @@ $("sortie-form").addEventListener("submit", async (e) => {
 /* ------------------------------------------------------------------ */
 
 const periodeDialog = $("periode-dialog");
-let servicesRef = null; // chargés à la demande (première ouverture du dialogue)
+let refData = null; // { services, niveaux }, chargés à la demande (première ouverture du dialogue)
 
-async function loadServicesRef() {
-  if (servicesRef) return servicesRef;
+async function loadRefData() {
+  if (refData) return refData;
   const res = await fetch(API + "/api/services");
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Erreur de chargement");
-  servicesRef = data.services;
-  return servicesRef;
+  refData = data;
+  return refData;
 }
 
 function fillPeriodeSitesEtServices(services) {
@@ -440,10 +440,26 @@ function fillPeriodeServicesForSite(site) {
     select.disabled = true;
     return;
   }
-  const forSite = servicesRef.filter((s) => (s.Site || "Autre") === site);
+  const forSite = refData.services.filter((s) => (s.Site || "Autre") === site);
   select.disabled = false;
   select.appendChild(new Option("— Choisir —", ""));
   for (const s of forSite) select.appendChild(new Option(s.Nom, s.id));
+}
+
+// Niveau de la période la plus récente de l'étudiant (ex. L1 → L2 en cours de cursus)
+function dernierNiveauConnu() {
+  const periodes = (state.data && state.data.periodes) || [];
+  if (!periodes.length) return "";
+  return periodes.slice().sort((a, b) => (b.Du || "").localeCompare(a.Du || ""))[0].Niveau || "";
+}
+
+function fillPeriodeNiveaux(niveaux) {
+  const select = $("periode-niveau");
+  select.innerHTML = "";
+  select.appendChild(new Option("— Choisir —", ""));
+  for (const n of niveaux) select.appendChild(new Option(n, n));
+  const dernierNiveau = dernierNiveauConnu();
+  if (dernierNiveau) select.value = dernierNiveau;
 }
 
 $("periode-site").addEventListener("change", () => fillPeriodeServicesForSite($("periode-site").value));
@@ -455,8 +471,9 @@ $("add-periode-btn").addEventListener("click", async () => {
   $("periode-au").value = "";
   periodeDialog.showModal();
   try {
-    const services = await loadServicesRef();
-    fillPeriodeSitesEtServices(services);
+    const ref = await loadRefData();
+    fillPeriodeSitesEtServices(ref.services);
+    fillPeriodeNiveaux(ref.niveaux);
   } catch (err) {
     errEl.textContent = "Impossible de charger la liste des services : " + err.message;
     errEl.hidden = false;
@@ -480,6 +497,7 @@ $("periode-form").addEventListener("submit", async (e) => {
 
   const body = {
     Service: Number($("periode-service").value),
+    Niveau: $("periode-niveau").value,
     Du: du,
     Au: au,
   };

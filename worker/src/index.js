@@ -23,7 +23,7 @@
  *   GET    /api/data                           -> payload complet (rafraîchissement)
  *   POST   /api/sorties        { ... }         -> nouvelle déclaration
  *   DELETE /api/sorties/:id                    -> suppression d'une de SES déclarations
- *   POST   /api/periodes       { Service, Du, Au } -> nouvelle période de stage (même étudiant)
+ *   POST   /api/periodes       { Service, Niveau, Du, Au } -> nouvelle période de stage (même étudiant)
  *
  * Espace cadre (email + code d'accès personnel dans X-Cadre-Email / X-Cadre-Code,
  * UTILISATEURS.Code_acces) : un cadre voit/modifie les services dont il est le
@@ -1266,14 +1266,14 @@ async function deleteSortie(env, student, rowId) {
 
 /**
  * Ajoute une nouvelle période de stage à l'étudiant déjà connecté (changement
- * de service, nouveau stage). Reprend le niveau de sa période la plus récente :
- * seuls le service et les dates sont demandés côté étudiant.
+ * de service, nouveau stage, passage de niveau).
  */
 async function creerPeriodeEtudiant(request, env, student) {
   const body = await request.json().catch(() => ({}));
   const serviceId = Number(body.Service);
   const du = String(body.Du || "");
   const au = String(body.Au || "");
+  const niveau = NIVEAUX.includes(body.Niveau) ? body.Niveau : "";
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(du) || !/^\d{4}-\d{2}-\d{2}$/.test(au)) {
     throw httpError(400, "Dates de stage invalides");
@@ -1289,9 +1289,6 @@ async function creerPeriodeEtudiant(request, env, student) {
   if (periodes.some((p) => p.fields.Du === duEpoch)) {
     throw httpError(409, "Une période de stage commençant à cette date existe déjà.");
   }
-  const niveau = periodes.length
-    ? periodes.slice().sort((a, b) => (b.fields.Du || 0) - (a.fields.Du || 0))[0].fields.Niveau || ""
-    : "";
 
   const { periodeId, semainesGenerees } = await creerPeriodeAvecSemaines(env, {
     studentRowId: student.rowId, code: student.code, serviceId, du, au, niveau, referent: "",
