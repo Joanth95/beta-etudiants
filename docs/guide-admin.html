@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="styles.css?v=22">
   <style>
     .guide-wrap{max-width:860px;margin:auto;padding:0 1rem}
+    main{padding:2rem 0 4rem}
     nav.toc{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1rem 1.25rem;margin:1.5rem 0}
     nav.toc strong{display:block;margin-bottom:.5rem}
     nav.toc a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--bleu);text-decoration:none}
     nav.toc a:hover{text-decoration:underline}
     .guide-section{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1.25rem 1.5rem;margin:1rem 0}
-    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
+    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu)}
     .guide-section h3{margin:1rem 0 .3rem;font-size:1rem}
     code,.code{background:var(--gris-fond);border:1px solid var(--gris-bordure);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
     table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.92rem}
@@ -23,18 +24,26 @@
     ul,ol{margin:.4rem 0;padding-left:1.2rem}
     .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--succes-bg);color:var(--succes)}
     .pill.warn{background:var(--alerte-bg);color:var(--alerte)}
-    .guide-header{background:var(--bleu);color:#fff;padding:2rem 1rem}
-    .guide-header h1{margin:0;font-size:1.6rem}
-    .guide-header p{margin:.4rem 0 0;opacity:.9}
-    .guide-main{padding:2rem 0 4rem}
-    .guide-footer{text-align:center;color:var(--texte-doux);font-size:.85rem;padding:2rem 1rem}
   </style>
 </head>
 <body>
-  <header class="guide-header">
-    <div class="guide-wrap">
-      <h1>🛠️ Mode d'emploi — Administrateurs</h1>
-      <p>Paramétrer l'outil dans Grist : services, cadres, codes, sécurité</p>
+  <header class="fr-header">
+    <div class="fr-header-body">
+      <div class="brand-block">
+        <img class="js-etab-logo" alt="" hidden>
+        <div class="brand-logo js-etab" hidden>
+          <span class="js-etab-nom"></span>
+          <span class="motto js-etab-desc"></span>
+        </div>
+        <div class="brand-service">
+          <div class="service-title">Mode d'emploi</div>
+          <div class="service-tagline">Administrateurs</div>
+        </div>
+      </div>
+      <div class="fr-header-tools">
+        <a class="btn btn-ghost" href="espace-cadre.html">Espace cadre</a>
+        <a class="btn btn-ghost" href="index.html">Espace étudiant</a>
+      </div>
     </div>
   </header>
 
@@ -164,8 +173,55 @@
     </div>
   </main>
 
-  <footer class="guide-footer">
-    Application <strong>GESTION ÉTUDIANT</strong> — conçue par M. Joan THUILLIER, Cadre Apprenant · Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
+  <footer class="fr-footer">
+    <div class="fr-footer-inner">
+      <div class="fr-footer-top">
+        <img class="js-etab-logo" alt="" hidden>
+        <div class="brand-logo js-etab" hidden>
+          <span class="js-etab-nom"></span>
+          <span class="motto js-etab-desc"></span>
+        </div>
+        <p class="fr-footer-desc">
+          Application de suivi des stages étudiants développée par
+          <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant —
+          Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville.
+        </p>
+      </div>
+      <div class="fr-footer-links">
+        <a href="guide-etudiant.html">Mode d'emploi étudiant</a><span class="sep">·</span>
+        <a href="guide-cadre.html">Mode d'emploi cadre</a><span class="sep">·</span>
+        <a href="guide-admin.html">Guide administrateur</a><span class="sep">·</span>
+        <a href="https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT/" target="_blank" rel="noopener">Administration (Grist)</a>
+      </div>
+      <p class="fr-footer-mention">
+        <span class="beta-tag">Version bêta</span> — vos retours sont les bienvenus ·
+        © M. Joan THUILLIER — Tous droits réservés.
+      </p>
+    </div>
   </footer>
+
+  <script>
+    (async () => {
+      try {
+        const res = await fetch('../api/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (cfg.nom) {
+          document.querySelectorAll('.js-etab-nom').forEach(el => el.textContent = cfg.nom);
+          document.querySelectorAll('.js-etab').forEach(el => el.hidden = false);
+        }
+        if (cfg.description) {
+          document.querySelectorAll('.js-etab-desc').forEach(el => el.textContent = cfg.description);
+        }
+        if (cfg.logoId) {
+          const logoUrl = `../api/logo?v=${cfg.logoId}`;
+          document.querySelectorAll('.js-etab-logo').forEach(el => {
+            el.src = logoUrl;
+            el.hidden = false;
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
 </body>
 </html>
