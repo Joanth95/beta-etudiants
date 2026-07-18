@@ -232,6 +232,9 @@ input[type="checkbox"], input[type="radio"] {
 .btn-ghost { background: transparent; color: var(--bleu); }
 .btn-ghost:hover { background: rgba(0, 0, 145, 0.06); }
 
+.btn-danger { background: transparent; color: #c9191e; border: 1px solid #c9191e; }
+.btn-danger:hover { background: rgba(201, 25, 30, 0.08); }
+
 .btn-link {
   background: none; border: none; color: var(--bleu);
   text-decoration: underline; cursor: pointer; font-size: 0.85rem;

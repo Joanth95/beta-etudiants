@@ -1074,8 +1074,40 @@ function renderStagesFaits(allPeriodes) {
     } else if (cat === "passe") {
       item.appendChild(el("p", "save-hint", "Stage terminé : la fiche n'est plus modifiable."));
     }
+
+    // Une période déclarée par erreur peut être supprimée tant que le stage
+    // n'est pas terminé ; le planning hebdomadaire rattaché part avec elle.
+    if (cat !== "passe" && state.data.services.some((s) => s.id === p.Service)) {
+      item.appendChild(renderSuppressionPeriode(p));
+    }
     wrap.appendChild(item);
   }
+  return wrap;
+}
+
+/** Bouton « Supprimer cette période » (déclaration faite par erreur) :
+ *  double confirmation, puis suppression en cascade côté Worker (période +
+ *  semaines de planning + rendez-vous formateur). */
+function renderSuppressionPeriode(p) {
+  const wrap = el("div", "");
+  wrap.style.marginTop = "0.6rem";
+  const btn = el("button", "btn btn-danger", "Supprimer cette période");
+  btn.type = "button";
+  btn.addEventListener("click", async () => {
+    const etu = `${p.Etudiant.prenom} ${p.Etudiant.nom}`.trim() || "cet étudiant";
+    if (!confirm(`Supprimer la période du ${frDate(p.Du)} au ${frDate(p.Au)} de ${etu} ?\n\n`
+      + "Le planning hebdomadaire et les rendez-vous rattachés seront aussi supprimés. "
+      + "Cette action est définitive.")) return;
+    btn.disabled = true;
+    try {
+      await api("DELETE", `/api/cadre/periodes/${p.id}`);
+      await refresh();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+    }
+  });
+  wrap.appendChild(btn);
   return wrap;
 }
 
