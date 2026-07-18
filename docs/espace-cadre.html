@@ -6,78 +6,534 @@
   <title>Espace cadre</title>
   <link rel="stylesheet" href="styles.css?v=20">
   <style>
+    /* Pleine largeur (surcharge le max-width 860px de styles.css, uniquement ici) */
     .content { max-width: none; padding: 0 2rem; }
-    .app-header { padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; }
-    .header-main { flex: 1 1 420px; min-width: 280px; }
-    .header-service-pickers { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-top: 0.55rem; }
-    .header-service-pickers .cadre-service-select { flex: 1 1 170px; max-width: 210px; margin: 0; }
-    .header-service-pickers .cadre-service-select label { font-size: 0.68rem; font-weight: 600; margin-bottom: 0.1rem; }
-    .header-service-pickers .cadre-service-select select { padding: 0.3rem 0.5rem; font-size: 0.82rem; height: 28px; }
+    .app-header { padding: 1rem 2rem; }
+    @media (max-width: 720px) { .content, .app-header { padding-left: 1rem; padding-right: 1rem; } }
+    .service-pickers { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem; }
+    .service-pickers .cadre-service-select { flex: 1 1 280px; max-width: 460px; }
+    .cadre-service-select { margin: 0 0 1rem; }
+    .cadre-service-select label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gris-texte, #555); margin: 0 0 0.3rem; }
+    .cadre-service-select select { padding: 0.6rem 0.75rem; border: 1px solid var(--gris-bordure); border-radius: 4px; width: 100%; font-size: 0.95rem; background: var(--blanc); }
+    /* Sous-onglets (2e niveau) sous la barre de groupes */
+    .group-subtabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.25rem; padding: 0.15rem 0 0.9rem; border-bottom: 1px solid var(--gris-bordure); }
+    .group-subtab { background: transparent; border: 1px solid var(--gris-bordure); border-radius: 999px; padding: 0.35rem 0.95rem; font-size: 0.9rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .group-subtab:hover { background: var(--gris-fond); color: var(--texte); }
+    .group-subtab.active { background: var(--bleu); border-color: var(--bleu); color: var(--blanc); }
+    .moi-info { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1.5rem; padding: 1rem; background: var(--blanc); border: 1px solid var(--gris-bordure); border-radius: var(--radius); font-size: 0.9rem; }
+    .moi-info .moi-nom { font-weight: 700; font-size: 1rem; }
+    .moi-info .moi-tel { color: var(--texte-doux); }
+    .moi-info input[type="tel"] { padding: 0.3rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; width: 12rem; }
+    .moi-info .btn-small { padding: 0.25rem 0.6rem; font-size: 0.82rem; }
+    .dossier-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .dossier-actions-hint { font-size: 0.82rem; color: var(--texte-doux); }
+    .dossier-search-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .dossier-search { flex: 1 1 320px; max-width: 520px; padding: 0.55rem 0.7rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.92rem; background: var(--blanc); color: var(--texte); }
+    .dossier-search-results:not(:empty) { background: var(--blanc); border: 1px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.5rem 1rem; margin-bottom: 1.1rem; }
+    .search-none { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; font-size: 0.9rem; color: var(--texte-doux); padding: 0.4rem 0; }
+    .etu-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.6rem 0 0.1rem; }
+    .btn-small { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+    .mail-form { display: flex; flex-direction: column; gap: 0.9rem; margin: 0.9rem 0; }
+    .mail-form > label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; color: var(--texte-doux); }
+    .mail-form input, .mail-form textarea { padding: 0.55rem 0.65rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font: inherit; font-size: 0.9rem; width: 100%; box-sizing: border-box; background: var(--blanc); color: var(--texte); }
+    .mail-form textarea { resize: vertical; line-height: 1.45; }
+    .insc-sep { border: none; border-top: 1px solid var(--gris-bordure); margin: 1rem 0; }
+    .insc-periode-title { font-weight: 700; font-size: 0.95rem; margin: 0.25rem 0 0.5rem; }
+    .etu-card { background: var(--blanc); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .etu-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .etu-nom { font-weight: 700; font-size: 1.05rem; }
+    .etu-meta { color: var(--texte-doux); font-size: 0.9rem; }
+    .etu-dates { color: var(--texte-doux); font-size: 0.88rem; margin-top: 0.15rem; }
+    .etu-fiche { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.6rem 0; }
+    .etu-fiche label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--texte-doux); }
+    .etu-fiche input, .etu-fiche select { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; }
+    .pending-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--gris-bordure); }
+    .pending-row:last-child { border-bottom: none; }
+    .pending-main { flex: 1; }
+    .save-hint { font-size: 0.8rem; color: var(--texte-doux); margin-top: 0.25rem; }
+    #codes-service-list { padding: 0.9rem 1rem 1rem; }
+    .dual-list { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .dual-list-col { flex: 1 1 260px; min-width: 240px; }
+    .dual-list-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
+    .dual-list-items { border: 1px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.35rem; min-height: 8rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .dual-list-item { text-align: left; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.35rem 0.55rem; font-size: 0.88rem; cursor: pointer; }
+    .dual-list-item:hover { border-color: var(--bleu); color: var(--bleu); }
+    .nouveau-code { margin-top: 1.25rem; border-top: 1px solid var(--gris-bordure); padding-top: 0.9rem; }
+    .nouveau-code-form { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; }
+    .nouveau-code-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--texte-doux); }
+    .nouveau-code-form input { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; }
+    .nouveau-code-form .checkbox-label { flex-direction: row; align-items: center; gap: 0.4rem; }
+    .anonymat-badge { font-family: ui-monospace, monospace; font-weight: 700; background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; }
+    #cadre-info { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .cadre-nom { font-weight: 700; font-size: 0.95rem; }
+    .cadre-nom-edit { font-weight: 700; font-size: 0.95rem; }
+    .cadre-tel { color: var(--texte-doux); font-size: 0.9rem; }
     .main-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0 1rem; }
-    .main-tab { background: white; border: 1px solid #ccc; border-bottom: 3px solid transparent; padding: 0.5rem 0.9rem; font-weight: 600; color: #555; cursor: pointer; }
-    .main-tab.active { color: #0a3d62; border-bottom-color: #0a3d62; }
-    .section-note { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
-    table.service-planning { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    .main-tab { background: var(--blanc); border: 1px solid var(--gris-bordure); border-bottom: 3px solid transparent; border-radius: var(--radius) var(--radius) 0 0; padding: 0.5rem 0.9rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; font-size: 0.95rem; transition: color 0.15s; }
+    .main-tab:hover { background: var(--gris-fond); }
+    .main-tab.active { color: var(--bleu); border-bottom-color: var(--bleu); background: var(--blanc); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06); }
+    .sub-tabs { display: flex; gap: 0.4rem; margin: 0.75rem 0 0.5rem; }
+    .sub-tab { background: var(--gris-fond); border: 1px solid var(--gris-bordure); border-radius: 999px; padding: 0.3rem 0.8rem; font-size: 0.82rem; font-weight: 600; color: var(--texte-doux); cursor: pointer; }
+    .sub-tab.active { background: var(--bleu); border-color: var(--bleu); color: var(--blanc); }
+    .dossier-category-tabs { margin-top: 0; }
+    .stage-block { border-top: 1px solid var(--gris-bordure); padding-top: 0.6rem; margin-top: 0.6rem; }
+    .stage-block:first-child { border-top: none; padding-top: 0; margin-top: 0.4rem; }
+    /* Historique des stages : une carte par période, liseré selon le statut */
+    .stage-item { border: 1px solid var(--gris-bordure); border-left: 4px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.6rem 0.85rem; margin-top: 0.6rem; }
+    .stage-item.stage-cours { border-left-color: var(--bleu); }
+    .stage-item.stage-avenir { border-left-color: #ffb056; }
+    .stage-item-header { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+    .stage-service { font-weight: 700; }
+    .stage-dates { color: var(--texte-doux); font-size: 0.9rem; }
+    .badge.info { background: #e8edff; border-color: #c3cffa; color: var(--bleu); }
+    .badge.neutral { background: var(--gris-fond); border-color: var(--gris-bordure); color: var(--texte-doux); }
+    @media (prefers-color-scheme: dark) {
+      .badge.info { background: #1a2c5c; border-color: #2c4494; color: #9db4ff; }
+    }
+    /* ---------- Déclarations à valider ---------- */
+    .decl-section { margin-bottom: 1.25rem; }
+    .decl-heading { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; }
+    .decl-heading-text { font-weight: 700; font-size: 1rem; }
+    .decl-count { background: var(--gris-fond); color: var(--texte-doux); border: 1px solid var(--gris-bordure); border-radius: 999px; padding: 0.05rem 0.55rem; font-size: 0.78rem; font-weight: 700; min-width: 1.4em; text-align: center; }
+    .decl-card { background: var(--blanc); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 0.2rem 1rem; }
+    .decl-card .empty { padding: 1.25rem 0.5rem; }
+    .pending-row { border-left: 3px solid transparent; border-radius: 4px; padding: 0.6rem 0.6rem 0.6rem 0.6rem; margin: 0 -0.6rem; flex-wrap: wrap; }
+    .pending-row:hover { background: var(--gris-fond); }
+    .pending-row.row-pending { border-left-color: #ffb056; }
+    .pending-row.row-valid { border-left-color: #59c884; }
+    table.mini-planning, table.service-planning { border-collapse: collapse; width: 100%; margin-top: 0.6rem; font-size: 0.85rem; }
+    table.mini-planning th, table.mini-planning td,
+    table.service-planning th, table.service-planning td { border: 1px solid var(--gris-bordure); padding: 0.4rem 0.5rem; text-align: center; }
+    table.mini-planning th:first-child, table.mini-planning td:first-child { text-align: left; }
+    table.service-planning { display: block; overflow-x: auto; white-space: nowrap; }
+    table.service-planning th.student-col, table.service-planning td.student-col {
+      position: sticky; left: 0; background: var(--blanc); text-align: left; min-width: 180px; z-index: 1;
+    }
+    table.service-planning th.compteurs-col, table.service-planning td.compteurs-col {
+      position: sticky; right: 0; background: var(--blanc); text-align: left; min-width: 150px; z-index: 1;
+      border-left: 2px solid var(--gris-bordure); font-size: 0.78rem;
+    }
+    .compteur-solde-pos { color: #18753c; font-weight: 600; }
+    .compteur-solde-neg { color: var(--rouge); font-weight: 600; }
+    table.service-planning thead th { background: var(--gris-fond); }
+    .etu-meta-small { font-size: 0.75rem; color: var(--texte-doux); font-weight: 400; }
+    td.hors-periode { background: var(--gris-fond); }
     td.code-cell { cursor: pointer; }
-    td.code-cell:hover { outline: 2px solid #0a3d62; outline-offset: -2px; }
-    td.jour-off { background: #eee; }
-    .btn { padding: 0.4rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; }
-    .btn-primary { background: #0a3d62; color: white; border-color: #0a3d62; }
+    td.code-cell:hover { outline: 2px solid var(--bleu); outline-offset: -2px; }
+    td.code-cell select { width: 100%; padding: 0.2rem; font-size: 0.85rem; }
+    table.service-planning td.jour-off { background: rgba(120, 120, 120, 0.25); }
+    table.service-planning thead th.jour-off { background: rgba(120, 120, 120, 0.4); }
+    .planning-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 0.75rem; }
+    .planning-controls input[type="date"] { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; }
+    /* Palette de codes + sélection façon tableur */
+    .code-palette { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; margin: 0 0 0.4rem; }
+    .code-palette .palette-hint { flex-basis: 100%; font-size: 0.78rem; color: var(--texte-doux); margin: 0.2rem 0 0; }
+    .code-palette .palette-status { color: #18753c; font-weight: 600; }
+    table.service-planning { user-select: none; -webkit-user-select: none; }
+    td.code-cell.sel { outline: 2px solid var(--bleu); outline-offset: -2px; background: rgba(0, 0, 145, 0.10); }
+    table.service-planning.painting td.code-cell { cursor: crosshair; }
+    .codes-legend { margin-top: 0.9rem; font-size: 0.8rem; color: var(--texte-doux); }
+    .codes-legend-title { margin: 0 0 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--texte); }
+    .codes-legend-list { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; }
+    .codes-legend-item { white-space: nowrap; }
+    .legend-off-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .legend-off-swatch { display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 2px; background: rgba(120, 120, 120, 0.4); border: 1px solid var(--gris-bordure); }
+    .planning-alertes { margin: 0 0 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid #f6c8c8; border-radius: 6px; background: #fdeeee; }
+    .planning-alertes-title { font-weight: 700; color: var(--rouge); margin: 0 0 0.35rem; font-size: 0.85rem; }
+    .planning-alertes-item { font-size: 0.8rem; color: var(--rouge); margin: 0.15rem 0; }
+    th.student-col .badge.warn { display: block; margin-top: 0.25rem; cursor: help; }
+    @media (prefers-color-scheme: dark) {
+      .planning-alertes { border-color: #7a2a26; background: #4a1210; }
+    }
+    /* ---------- Tableau de bord ---------- */
+    .kpi-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.25rem 0 1.5rem; }
+    .kpi-card { flex: 1 1 150px; min-width: 140px; text-align: left; background: var(--blanc); border: 1px solid var(--gris-bordure); border-left: 4px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.7rem 0.9rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; font: inherit; }
+    button.kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.14); transform: translateY(-1px); }
+    .kpi-card.kpi-static { cursor: default; }
+    .kpi-value { font-size: 1.7rem; font-weight: 800; line-height: 1.1; color: var(--texte); }
+    .kpi-label { font-size: 0.82rem; font-weight: 600; color: var(--texte); margin-top: 0.15rem; }
+    .kpi-sub { font-size: 0.74rem; color: var(--texte-doux); min-height: 0.9rem; }
+    .kpi-info { border-left-color: var(--bleu); }
+    .kpi-ok { border-left-color: #59c884; }
+    .kpi-warn { border-left-color: #ffb056; }
+    .kpi-pending { border-left-color: #f0b429; }
+    .kpi-danger { border-left-color: var(--rouge); }
+    .kpi-warn .kpi-value, .kpi-danger .kpi-value { color: var(--rouge); }
+    .dash-table-wrap { overflow-x: auto; }
+    table.dash-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; background: var(--blanc); box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-radius: var(--radius); overflow: hidden; }
+    table.dash-table th, table.dash-table td { padding: 0.5rem 0.7rem; text-align: left; border-bottom: 1px solid var(--gris-bordure); white-space: nowrap; }
+    table.dash-table thead th { background: var(--gris-fond); font-size: 0.78rem; color: var(--texte-doux); }
+    table.dash-table tbody tr.dash-row { cursor: pointer; }
+    table.dash-table tbody tr.dash-row:hover { background: var(--gris-fond); }
+    .dash-nom { font-weight: 600; }
+    .dash-muted { color: var(--texte-doux); }
+    .echeances { margin-top: 1.75rem; }
+    .echeances-list { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.4rem; }
+    .echeance-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; padding: 0.35rem 0; border-bottom: 1px solid var(--gris-bordure); }
+    .echeance-item:last-child { border-bottom: none; }
+    /* ---------- Statistiques ---------- */
+    .stats-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1.25rem; }
+    .stats-controls > label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--texte-doux); }
+    .stats-controls input[type="date"] { padding: 0.4rem 0.5rem; border: 1px solid var(--gris-bordure); border-radius: 4px; font-size: 0.9rem; }
+    .stats-presets { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .stat-dist { margin: 1.25rem 0; background: var(--blanc); border: 1px solid var(--gris-bordure); border-radius: var(--radius); padding: 0.8rem 1rem; }
+    .dist-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.3rem 0; font-size: 0.85rem; }
+    .dist-label { flex: 0 0 30%; min-width: 8rem; }
+    .dist-track { flex: 1; background: var(--gris-fond); border-radius: 999px; height: 0.85rem; overflow: hidden; }
+    .dist-bar { height: 100%; background: var(--bleu); border-radius: 999px; min-width: 2px; }
+    .dist-val { flex: 0 0 auto; color: var(--texte-doux); font-variant-numeric: tabular-nums; }
+    #print-header, #print-footer { display: none; }
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      .app-header, .moi-info, .cadre-service-select, .service-pickers, .main-tabs, .group-subtabs,
+      .planning-controls, .code-palette, .app-footer,
+      .planning-alertes, th.student-col .badge.warn, th.compteurs-col, td.compteurs-col, #tab-dashboard, #tab-declarations,
+      #tab-dossier, #tab-evaluation, #tab-stats, #tab-codes, #tab-mailbienvenue, .section-note { display: none !important; }
+      #print-header { display: block; margin-bottom: 1rem; }
+      #print-footer {
+        display: block; margin-top: 16px; padding-top: 6px; border-top: 1px solid #ccc;
+        text-align: center; font-size: 8pt; color: #555;
+      }
+      table.service-planning { display: table; overflow: visible; white-space: normal; }
+      table.service-planning th.student-col, table.service-planning td.student-col { position: static; }
+      td.code-cell { cursor: default; }
+      table.service-planning td.jour-off, table.service-planning thead th.jour-off {
+        background: #555 !important; color: #fff !important;
+      }
+      .legend-off-swatch { background: #555; border-color: #555; }
+    }
+
+    /* === NOUVEAU : Compact Site/Service dans l'en-tête === */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .header-main {
+      flex: 1 1 420px;
+      min-width: 280px;
+    }
+    .header-service-pickers {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-top: 0.55rem;
+      align-items: flex-end;
+    }
+    .header-service-pickers .cadre-service-select {
+      flex: 1 1 170px;
+      max-width: 210px;
+      margin: 0;
+    }
+    .header-service-pickers .cadre-service-select label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--gris-texte, #555);
+      margin: 0 0 0.12rem;
+    }
+    .header-service-pickers .cadre-service-select select {
+      padding: 0.32rem 0.55rem;
+      font-size: 0.82rem;
+      border-radius: 4px;
+      height: 28px;
+    }
+    @media (max-width: 720px) {
+      .header-service-pickers .cadre-service-select {
+        flex: 1 1 140px;
+        max-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Écran de connexion -->
   <section id="login-screen" class="screen">
     <div class="login-card">
       <h1>Espace cadre</h1>
-      <p class="subtitle">Piloter les étudiants de votre service</p>
+      <p class="subtitle">Piloter les étudiants de votre service : planning, validations, fiches</p>
       <form id="login-form">
-        <label>Adresse email</label>
-        <input type="email" id="login-email" required>
-        <label>Code d'accès</label>
-        <input type="password" id="login-code" required>
-        <button type="submit" class="btn btn-primary">Se connecter</button>
+        <label for="login-email">Adresse email</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+        <label for="login-code">Code d'accès</label>
+        <input type="password" id="login-code" autocomplete="current-password" required>
+        <button type="submit" class="btn btn-primary" id="login-btn">Se connecter</button>
         <p id="login-error" class="error" hidden></p>
       </form>
+      <p class="hint">
+        Le code d'accès vous a été transmis par l'administrateur de l'application.
+      </p>
+      <p class="hint">
+        Besoin d'aide ? <a href="guide-cadre.html">Consultez le mode d'emploi</a>.
+      </p>
+      <p class="hint">
+        Vous êtes étudiant ? <a href="index.html">Accédez à l'espace étudiant</a>.
+      </p>
     </div>
+    <footer class="app-footer">
+      Application développée par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant —
+      Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville<br>
+      <span class="beta-tag">Version bêta</span> — vos retours sont les bienvenus
+    </footer>
   </section>
-
+  <!-- Application -->
   <section id="app-screen" class="screen" hidden>
     <header class="app-header">
       <div class="header-main">
         <h1>Espace cadre</h1>
         <p id="cadre-info" class="subtitle"></p>
+        <!-- Champs Site et Service rendus compacts et placés sous le nom du cadre -->
         <div class="header-service-pickers">
-          <div class="cadre-service-select">
-            <label>Site</label>
+          <div class="cadre-service-select" id="cadre-site-select">
+            <label for="site-select">Site</label>
             <select id="site-select"></select>
           </div>
           <div class="cadre-service-select">
-            <label>Service</label>
+            <label for="service-select">Service</label>
             <select id="service-select"></select>
           </div>
         </div>
       </div>
       <div class="header-actions">
-        <button id="refresh-btn" class="btn">🔄</button>
-        <button id="logout-btn" class="btn">Se déconnecter</button>
+        <button id="refresh-btn" class="btn btn-ghost" title="Actualiser">🔄</button>
+        <button id="logout-btn" class="btn btn-ghost">Se déconnecter</button>
       </div>
     </header>
-
     <main class="content">
-      <div class="main-tabs" id="main-tabs"></div>
-      <div class="group-subtabs" id="main-subtabs" hidden></div>
-
-      <div id="tab-dashboard"><div id="dashboard-content"></div></div>
-      <div id="tab-declarations" hidden><div id="declarations-pending"></div></div>
-      <div id="tab-dossier" hidden><div id="dossier-list"></div></div>
-      <div id="tab-planning" hidden><div id="planning-service"></div></div>
-      <div id="tab-evaluation" hidden><div id="evaluation-list"></div></div>
-      <div id="tab-stats" hidden><div id="stats-content"></div></div>
-      <div id="tab-codes" hidden><div id="codes-service-list"></div></div>
-      <div id="tab-mailbienvenue" hidden><div id="mailbienvenue-content"></div></div>
+      <div id="print-header"></div>
+      <section>
+        <!-- Les onglets principaux sont maintenant remontés (plus de .service-pickers au-dessus) -->
+        <div class="main-tabs" id="main-tabs"></div>
+        <div class="group-subtabs" id="main-subtabs" hidden></div>
+        <div id="tab-dashboard">
+          <p class="section-note">Vue d'ensemble de votre service : indicateurs clés, étudiants en cours et à venir, échéances. Cliquez sur une carte ou une ligne pour aller au détail.</p>
+          <div id="dashboard-content"></div>
+        </div>
+        <div id="tab-declarations" hidden>
+          <p class="section-note">Validez les déclarations en attente, ou dévalidez une déclaration déjà traitée par erreur.</p>
+          <section class="decl-section">
+            <div class="decl-heading"><span class="decl-heading-text">En attente</span><span class="decl-count" id="declarations-pending-count">0</span></div>
+            <div id="declarations-pending" class="decl-card"></div>
+          </section>
+          <section class="decl-section">
+            <div class="decl-heading"><span class="decl-heading-text">Validées</span><span class="decl-count" id="declarations-valid-count">0</span></div>
+            <div id="declarations-valid" class="decl-card"></div>
+          </section>
+        </div>
+        <div id="tab-dossier" hidden>
+          <p class="section-note">Dossier de chaque étudiant : stages effectués, planning individuel et déclarations d'heures.</p>
+          <div class="sub-tabs dossier-category-tabs" id="dossier-category-tabs"></div>
+          <div id="dossier-list"></div>
+        </div>
+        <div id="tab-planning" hidden>
+          <p class="section-note">Planning mensuel du service. Utilisez les boutons ◄ Mois précédent / Mois suivant ► ou « Aujourd'hui ». Double-clic sur une case pour voir les codes. Vous pouvez peindre ou copier-coller des blocs de jours.</p>
+          <div id="planning-service"></div>
+        </div>
+        <div id="tab-evaluation" hidden>
+          <p class="section-note">Étudiants éligibles à l'envoi du questionnaire (de 10 jours avant la fin du stage jusqu'à 40 jours après).</p>
+          <div id="evaluation-list"></div>
+        </div>
+        <div id="tab-stats" hidden>
+          <p class="section-note">Statistiques d'encadrement sur la période choisie, pour votre rapport d'activité. Ajustez les dates puis imprimez le rapport.</p>
+          <div id="stats-content"></div>
+        </div>
+        <div id="tab-codes" hidden>
+          <p class="section-note">Cliquez sur un code pour le faire passer d'une liste à l'autre, puis Enregistrer : seuls les codes « utilisés » seront proposés dans le planning de ce service. Vous pouvez aussi créer un nouveau code horaire.</p>
+          <div id="codes-service-list" class="decl-card"></div>
+        </div>
+        <div id="tab-mailbienvenue" hidden>
+          <p class="section-note">Modèle de mail de bienvenue du service. Il est utilisé par le bouton « ✉ Mail de bienvenue » présent sur le dossier de chaque étudiant.</p>
+          <div id="mailbienvenue-content" class="decl-card" style="padding: 1rem 1.25rem;"></div>
+        </div>
+      </section>
+      <div id="print-footer"></div>
+      <footer class="app-footer">
+        Application développée par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant —
+        Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville<br>
+        <span class="beta-tag">Version bêta</span> — vos retours sont les bienvenus
+      </footer>
     </main>
   </section>
-
+  <!-- Ajouter une déclaration pour un étudiant -->
+  <dialog id="sortie-dialog">
+    <form id="sortie-form" method="dialog">
+      <h2>Déclarer pour un étudiant</h2>
+      <div id="sortie-periode-wrap" hidden>
+        <label for="sortie-periode">Période de stage</label>
+        <select id="sortie-periode"></select>
+      </div>
+      <div class="type-options" role="radiogroup" aria-label="Type de déclaration">
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Rattrapage" checked>
+          <span><strong>Rattrapage</strong>
+            <small>Heures faites en plus du planning — ajoutées au compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Retard">
+          <span><strong>Retard</strong>
+            <small>Arrivée en retard — heures déduites du compteur</small></span>
+        </label>
+        <label class="type-option">
+          <input type="radio" name="sortie-type" value="Sortie de stage">
+          <span><strong>Sortie de stage</strong>
+            <small>Temps organisé pour la formation (cours, regroupement…)</small></span>
+        </label>
+      </div>
+      <label for="sortie-motif-texte">Motif ou commentaire <span class="optional">(facultatif)</span></label>
+      <input type="text" id="sortie-motif-texte" maxlength="200" placeholder="Précisez si besoin">
+      <div id="sortie-compte-wrap" hidden>
+        <label class="checkbox-label">
+          <input type="checkbox" id="sortie-compte" checked>
+          Ce temps compte en temps de stage
+        </label>
+      </div>
+      <label for="sortie-date">Date</label>
+      <input type="date" id="sortie-date" required>
+      <div class="row">
+        <div>
+          <label for="sortie-debut">De</label>
+          <input type="time" id="sortie-debut" required>
+        </div>
+        <div>
+          <label for="sortie-fin">À</label>
+          <input type="time" id="sortie-fin" required>
+        </div>
+      </div>
+      <p id="sortie-error" class="error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="sortie-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="sortie-save-btn">Déclarer</button>
+      </div>
+    </form>
+  </dialog>
+  <!-- Modifier une déclaration en attente (motif, date, heures) -->
+  <dialog id="edit-sortie-dialog">
+    <form id="edit-sortie-form" method="dialog">
+      <h2>Modifier la déclaration</h2>
+      <label for="edit-sortie-motif">Motif</label>
+      <input type="text" id="edit-sortie-motif" maxlength="100" required>
+      <label for="edit-sortie-commentaire">Commentaire <span class="optional">(facultatif)</span></label>
+      <input type="text" id="edit-sortie-commentaire" maxlength="200">
+      <div class="checkbox-label">
+        <label class="checkbox-label">
+          <input type="checkbox" id="edit-sortie-compte">
+          Ce temps compte en temps de stage
+        </label>
+      </div>
+      <label for="edit-sortie-date">Date</label>
+      <input type="date" id="edit-sortie-date" required>
+      <div class="row">
+        <div>
+          <label for="edit-sortie-debut">De</label>
+          <input type="time" id="edit-sortie-debut" required>
+        </div>
+        <div>
+          <label for="edit-sortie-fin">À</label>
+          <input type="time" id="edit-sortie-fin" required>
+        </div>
+      </div>
+      <p id="edit-sortie-error" class="error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="edit-sortie-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="edit-sortie-save-btn">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+  <!-- Inscrire un étudiant / ajouter un stage -->
+  <dialog id="inscription-dialog">
+    <form id="inscription-form" method="dialog">
+      <h2 id="inscription-title">Inscrire un étudiant</h2>
+      <div id="insc-identity">
+        <div class="row">
+          <div>
+            <label for="insc-civilite">Civilité</label>
+            <select id="insc-civilite"></select>
+          </div>
+          <div>
+            <label for="insc-formation">Formation</label>
+            <select id="insc-formation"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="insc-prenom">Prénom</label>
+            <input type="text" id="insc-prenom" maxlength="80" autocomplete="off">
+          </div>
+          <div>
+            <label for="insc-nom">Nom</label>
+            <input type="text" id="insc-nom" maxlength="80" autocomplete="off">
+          </div>
+        </div>
+        <label for="insc-ddn">Date de naissance</label>
+        <input type="date" id="insc-ddn">
+        <label for="insc-centre">Centre de formation (IFSI…) <span class="optional">(facultatif)</span></label>
+        <input type="text" id="insc-centre" maxlength="120" autocomplete="off">
+        <label for="insc-email">Adresse mail <span class="optional">(facultatif)</span></label>
+        <input type="email" id="insc-email" maxlength="120" autocomplete="off">
+        <label for="insc-tel">Téléphone <span class="optional">(facultatif)</span></label>
+        <input type="tel" id="insc-tel" maxlength="20" autocomplete="off">
+        <hr class="insc-sep">
+      </div>
+      <div class="insc-periode-title">Période de stage</div>
+      <label for="insc-service">Service</label>
+      <select id="insc-service"></select>
+      <div class="row">
+        <div>
+          <label for="insc-du">Du</label>
+          <input type="date" id="insc-du" required>
+        </div>
+        <div>
+          <label for="insc-au">Au</label>
+          <input type="date" id="insc-au" required>
+        </div>
+      </div>
+      <label for="insc-niveau">Niveau</label>
+      <select id="insc-niveau"></select>
+      <label for="insc-referent">Référent pédagogique (IFSI) <span class="optional">(facultatif)</span></label>
+      <input type="text" id="insc-referent" maxlength="80" autocomplete="off">
+      <p id="insc-error" class="error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="insc-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="insc-save-btn">Inscrire</button>
+      </div>
+    </form>
+  </dialog>
+  <!-- Inviter un étudiant à s'inscrire lui-même -->
+  <dialog id="invite-dialog">
+    <form id="invite-form" method="dialog">
+      <h2>Inviter un étudiant à s'inscrire</h2>
+      <p class="save-hint">L'étudiant recevra un lien vers la page d'inscription où il renseignera lui-même son dossier (identité et dates de stage).</p>
+      <label for="invite-email">Adresse mail de l'étudiant</label>
+      <input type="email" id="invite-email" maxlength="120" autocomplete="off" placeholder="prenom.nom@exemple.fr">
+      <label for="invite-prenom">Prénom <span class="optional">(facultatif)</span></label>
+      <input type="text" id="invite-prenom" maxlength="80" autocomplete="off">
+      <p id="invite-error" class="error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="invite-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="invite-send-btn">Ouvrir le mail</button>
+      </div>
+    </form>
+  </dialog>
+  <!-- Ajouter un rendez-vous formateur/tuteur -->
+  <dialog id="rdv-dialog">
+    <form id="rdv-form" method="dialog">
+      <h2>Ajouter un rendez-vous</h2>
+      <label for="rdv-type">Type de rendez-vous</label>
+      <select id="rdv-type" required></select>
+      <label for="rdv-date">Date</label>
+      <input type="date" id="rdv-date" required>
+      <label for="rdv-formateur">Formateur <span class="optional">(facultatif)</span></label>
+      <input type="text" id="rdv-formateur" maxlength="80" placeholder="Nom du formateur / tuteur">
+      <label for="rdv-commentaire">Commentaire <span class="optional">(facultatif)</span></label>
+      <input type="text" id="rdv-commentaire" maxlength="300" placeholder="Précisez si besoin">
+      <p id="rdv-error" class="error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="rdv-cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="rdv-save-btn">Ajouter</button>
+      </div>
+    </form>
+  </dialog>
   <script src="config.js?v=18"></script>
   <script src="espace-cadre.js?v=28"></script>
 </body>
