@@ -4,44 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mode d'emploi — Cadres de service</title>
+  <link rel="stylesheet" href="styles.css?v=22">
   <style>
-    :root{--bleu:#000091;--bleu2:#1212ff;--rouge:#ce0500;--fond:#f6f6f6;--bord:#ddd;--txt:#161616;--doux:#666;--ok:#18753c;--okbg:#e3fdeb;--warn:#b34000;--warnbg:#fff3e0;--radius:8px}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:"Marianne","Segoe UI",system-ui,sans-serif;background:var(--fond);color:var(--txt);line-height:1.6}
-    header{background:var(--bleu);color:#fff;padding:2rem 1rem}
-    .wrap{max-width:860px;margin:auto;padding:0 1rem}
-    h1{margin:0;font-size:1.6rem}
-    header p{margin:.4rem 0 0;opacity:.9}
-    main{padding:2rem 0 4rem}
-    nav.toc{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1rem 1.25rem;margin:1.5rem 0}
+    .guide-wrap{max-width:860px;margin:auto;padding:0 1rem}
+    nav.toc{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1rem 1.25rem;margin:1.5rem 0}
     nav.toc strong{display:block;margin-bottom:.5rem}
     nav.toc a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--bleu);text-decoration:none}
     nav.toc a:hover{text-decoration:underline}
-    section{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1rem 0}
-    section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
-    section h3{margin:1rem 0 .3rem;font-size:1rem}
-    code,.code{background:var(--fond);border:1px solid var(--bord);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
+    .guide-section{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1.25rem 1.5rem;margin:1rem 0}
+    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
+    .guide-section h3{margin:1rem 0 .3rem;font-size:1rem}
+    code,.code{background:var(--gris-fond);border:1px solid var(--gris-bordure);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
     table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.92rem}
-    th,td{border:1px solid var(--bord);padding:.45rem .6rem;text-align:left;vertical-align:top}
-    th{background:var(--fond)}
-    .callout{background:#e8f0fe;border:1px solid #b8d0f8;border-radius:var(--radius);padding:.8rem 1rem;margin:.75rem 0}
-    .callout.warn{background:var(--warnbg);border-color:#ffd9a0}
+    th,td{border:1px solid var(--gris-bordure);padding:.45rem .6rem;text-align:left;vertical-align:top}
+    th{background:var(--gris-fond)}
+    .callout{background:var(--info-bg);border:1px solid #b8d0f8;border-radius:4px;padding:.8rem 1rem;margin:.75rem 0}
+    .callout.warn{background:var(--alerte-bg);border-color:#ffd9a0}
     ul,ol{margin:.4rem 0;padding-left:1.2rem}
-    .flow{background:var(--fond);border-radius:var(--radius);padding:.75rem 1rem;font-family:ui-monospace,monospace;font-size:.85rem;overflow-x:auto}
-    footer{text-align:center;color:var(--doux);font-size:.85rem;padding:2rem 1rem}
-    .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--okbg);color:var(--ok)}
-    .pill.warn{background:var(--warnbg);color:var(--warn)}
+    .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--succes-bg);color:var(--succes)}
+    .pill.warn{background:var(--alerte-bg);color:var(--alerte)}
+    .guide-header{background:var(--bleu);color:#fff;padding:2rem 1rem}
+    .guide-header h1{margin:0;font-size:1.6rem}
+    .guide-header p{margin:.4rem 0 0;opacity:.9}
+    .guide-main{padding:2rem 0 4rem}
+    .guide-footer{text-align:center;color:var(--texte-doux);font-size:.85rem;padding:2rem 1rem}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
+  <header class="guide-header">
+    <div class="guide-wrap">
       <h1>🧑‍⚕️ Mode d'emploi — Cadres de service</h1>
       <p>Piloter les stages étudiants : planning, heures, validations</p>
     </div>
   </header>
 
-  <main class="wrap">
+  <main class="guide-main">
+    <div class="guide-wrap">
     <nav class="toc">
       <strong>Sommaire</strong>
       <a href="#principe">1. Principe général</a>
@@ -61,13 +59,13 @@
       <a href="#cadre">15. Vos coordonnées</a>
     </nav>
 
-    <section id="principe">
+    <section class="guide-section" id="principe" class="guide-section">
       <h2>1. Principe général</h2>
       <p>Chaque étudiant dispose de son propre <strong>espace en ligne</strong> pour consulter son planning de stage et déclarer ses écarts d'heures (retard, rattrapage, sortie de formation). Vous disposez de votre côté d'un <strong>espace cadre</strong> qui vous permet de piloter les étudiants de votre service : même planning, mêmes déclarations, avec en plus les actions de gestion (validation, édition du planning, fiches de stage).</p>
       <p>L'étudiant n'a pas d'identifiant classique : il s'identifie par un <strong>code anonymat</strong> personnel (1<sup>re</sup> lettre du prénom + date de naissance JJMMAA + 1<sup>re</sup> lettre du nom).</p>
     </section>
 
-    <section id="connexion">
+    <section class="guide-section" id="connexion">
       <h2>2. Se connecter à l'espace cadre</h2>
       <p>Rendez-vous sur <a href="espace-cadre.html">espace-cadre.html</a> et connectez-vous avec votre <strong>adresse email</strong> et votre <strong>code d'accès personnel</strong> (transmis par l'administrateur de l'application).</p>
       <p>Vous pouvez aussi recevoir un <strong>lien de connexion directe</strong> intégrant déjà vos identifiants : un simple clic vous connecte, sans ressaisir email ni code.</p>
@@ -76,7 +74,7 @@
       <p>Vous êtes étudiant par erreur sur cette page ? <a href="index.html">Accédez à l'espace étudiant</a>.</p>
     </section>
 
-    <section id="onglets">
+    <section class="guide-section" id="onglets">
       <h2>3. Organisation de l'espace</h2>
       <p>L'espace cadre est organisé en <strong>4 groupes</strong>, chacun regroupant un ou plusieurs onglets :</p>
       <table>
@@ -88,7 +86,7 @@
       </table>
     </section>
 
-    <section id="dashboard">
+    <section class="guide-section" id="dashboard">
       <h2>4. Tableau de bord</h2>
       <p>C'est l'écran d'accueil de votre espace. Il affiche :</p>
       <ul>
@@ -98,7 +96,7 @@
       </ul>
     </section>
 
-    <section id="dossier">
+    <section class="guide-section" id="dossier">
       <h2>5. Dossier étudiants</h2>
       <p>Les étudiants de votre service sont classés en trois sous-onglets :</p>
       <ul>
@@ -116,7 +114,7 @@
       <p>Chaque stage porte la liste de ses <strong>rendez-vous</strong> (visite formateur, bilan tuteur…). Le bouton d'ajout enregistre le type de rendez-vous, la date, le formateur et un commentaire ; les rendez-vous des 14 prochains jours remontent dans les échéances du tableau de bord.</p>
     </section>
 
-    <section id="inscription">
+    <section class="guide-section" id="inscription">
       <h2>6. Inscription</h2>
       <p>Cet onglet regroupe tout ce qui concerne l'arrivée d'un étudiant dans votre service :</p>
       <ul>
@@ -127,7 +125,7 @@
       <div class="callout">Réflexe conseillé : <strong>recherchez d'abord</strong> l'étudiant avant de l'inscrire, pour rattacher le nouveau stage à son dossier existant.</div>
     </section>
 
-    <section id="planning">
+    <section class="guide-section" id="planning">
       <h2>7. Planning de service</h2>
       <p>Cet onglet affiche tous les étudiants du service sur un <strong>mois calendaire</strong> : naviguez de mois en mois avec les flèches ou revenez au mois courant avec « Ce mois-ci ». Les dates du stage de chaque étudiant s'affichent sous son nom.</p>
       <p>Une colonne <strong>Compteurs</strong> résume pour chaque étudiant ses heures <strong>faites / prévues</strong> et son <strong>solde</strong> (base 35 h par semaine), sans quitter le planning.</p>
@@ -149,7 +147,7 @@
       <div class="callout">Le bouton <strong>🖨 Imprimer</strong> génère une version prête à imprimer ou à archiver : en-tête avec le nom du service, les dates, votre nom et la date de génération.</div>
     </section>
 
-    <section id="heures">
+    <section class="guide-section" id="heures">
       <h2>8. Comprendre le décompte des heures</h2>
       <table>
         <tr><th>Notion</th><th>Comment c'est calculé</th></tr>
@@ -159,7 +157,7 @@
       </table>
     </section>
 
-    <section id="feries">
+    <section class="guide-section" id="feries">
       <h2>9. Jours fériés</h2>
       <p>Règle appliquée (conforme à l'<strong>arrêté du 31 juillet 2009</strong>) :</p>
       <ul>
@@ -170,7 +168,7 @@
       <p>Les jours fériés sont grisés dans le planning de service (voir section 7).</p>
     </section>
 
-    <section id="valider">
+    <section class="guide-section" id="valider">
       <h2>10. Valider les déclarations d'heures</h2>
       <p>Quand un étudiant déclare des heures (ou que vous en déclarez pour lui), elles apparaissent dans l'onglet <strong>Déclarations à valider</strong>, section « En attente ».</p>
       <ul>
@@ -189,7 +187,7 @@
       </table>
     </section>
 
-    <section id="evaluations">
+    <section class="guide-section" id="evaluations">
       <h2>11. Envoi des évaluations</h2>
       <p>Cet onglet liste les étudiants <strong>éligibles à l'envoi du questionnaire de satisfaction</strong> : de 10 jours avant la fin du stage jusqu'à 40 jours après.</p>
       <p>Le bouton <strong>« Envoyer l'évaluation »</strong> ouvre un email pré-rempli avec le lien du questionnaire, à envoyer à l'étudiant. Un badge indique l'état :</p>
@@ -199,7 +197,7 @@
       </ul>
     </section>
 
-    <section id="stats">
+    <section class="guide-section" id="stats">
       <h2>12. Statistiques</h2>
       <p>Le <strong>rapport d'activité du service</strong> sur la période de votre choix (champs de dates + préréglages : année en cours, 12 derniers mois…) :</p>
       <ul>
@@ -210,7 +208,7 @@
       <div class="callout">Le bouton <strong>🖨 Imprimer le rapport</strong> génère une version imprimable, par exemple pour un bilan annuel d'encadrement.</div>
     </section>
 
-    <section id="codes">
+    <section class="guide-section" id="codes">
       <h2>13. Codes horaires</h2>
       <p>Cet onglet vous permet de choisir les <strong>codes horaires utilisables dans votre service</strong>, via une double liste :</p>
       <ul>
@@ -222,20 +220,21 @@
       <div class="callout warn">Un code créé ne peut plus être supprimé (il peut avoir été utilisé dans des plannings). Vérifiez qu'un code équivalent n'existe pas déjà dans les codes disponibles.</div>
     </section>
 
-    <section id="mailbienvenue">
+    <section class="guide-section" id="mailbienvenue">
       <h2>14. Mail de bienvenue</h2>
       <p>Chaque service peut personnaliser le <strong>mail de bienvenue</strong> envoyé aux étudiants (objet et corps). Le modèle accepte des variables remplacées automatiquement à l'envoi : <span class="code">{prenom}</span>, <span class="code">{nom}</span>, <span class="code">{service}</span>, <span class="code">{du}</span>, <span class="code">{au}</span>, <span class="code">{code}</span>, <span class="code">{referent}</span>, <span class="code">{cadre}</span>.</p>
       <p>Le mail s'envoie depuis le dossier d'un étudiant (bouton « ✉ Mail de bienvenue ») : il ouvre votre messagerie avec le message pré-rempli. Sans modèle personnalisé, un modèle par défaut est utilisé.</p>
     </section>
 
-    <section id="cadre">
+    <section class="guide-section" id="cadre">
       <h2>15. Vos coordonnées de cadre</h2>
       <p>Votre nom et vos coordonnées (mail, téléphone) s'affichent à l'étudiant sur sa fiche de stage et dans le message d'inscription. Assurez-vous qu'elles soient à jour auprès de l'administrateur de l'application.</p>
       <div class="callout">Tant que votre téléphone n'est pas renseigné, seul le mail s'affiche à l'étudiant.</div>
     </section>
+    </div>
   </main>
 
-  <footer>
+  <footer class="guide-footer">
     Application <strong>GESTION ÉTUDIANT</strong> — conçue par M. Joan THUILLIER, Cadre Apprenant · Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
   </footer>
 </body>

@@ -4,44 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mode d'emploi — Administrateurs</title>
+  <link rel="stylesheet" href="styles.css?v=22">
   <style>
-    :root{--bleu:#000091;--bleu2:#1212ff;--rouge:#ce0500;--fond:#f6f6f6;--bord:#ddd;--txt:#161616;--doux:#666;--ok:#18753c;--okbg:#e3fdeb;--warn:#b34000;--warnbg:#fff3e0;--radius:8px}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:"Marianne","Segoe UI",system-ui,sans-serif;background:var(--fond);color:var(--txt);line-height:1.6}
-    header{background:var(--bleu);color:#fff;padding:2rem 1rem}
-    .wrap{max-width:860px;margin:auto;padding:0 1rem}
-    h1{margin:0;font-size:1.6rem}
-    header p{margin:.4rem 0 0;opacity:.9}
-    main{padding:2rem 0 4rem}
-    nav.toc{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1rem 1.25rem;margin:1.5rem 0}
+    .guide-wrap{max-width:860px;margin:auto;padding:0 1rem}
+    nav.toc{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1rem 1.25rem;margin:1.5rem 0}
     nav.toc strong{display:block;margin-bottom:.5rem}
     nav.toc a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--bleu);text-decoration:none}
     nav.toc a:hover{text-decoration:underline}
-    section{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1rem 0}
-    section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
-    section h3{margin:1rem 0 .3rem;font-size:1rem}
-    code,.code{background:var(--fond);border:1px solid var(--bord);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
+    .guide-section{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1.25rem 1.5rem;margin:1rem 0}
+    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
+    .guide-section h3{margin:1rem 0 .3rem;font-size:1rem}
+    code,.code{background:var(--gris-fond);border:1px solid var(--gris-bordure);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
     table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.92rem}
-    th,td{border:1px solid var(--bord);padding:.45rem .6rem;text-align:left;vertical-align:top}
-    th{background:var(--fond)}
-    .callout{background:#e8f0fe;border:1px solid #b8d0f8;border-radius:var(--radius);padding:.8rem 1rem;margin:.75rem 0}
-    .callout.warn{background:var(--warnbg);border-color:#ffd9a0}
+    th,td{border:1px solid var(--gris-bordure);padding:.45rem .6rem;text-align:left;vertical-align:top}
+    th{background:var(--gris-fond)}
+    .callout{background:var(--info-bg);border:1px solid #b8d0f8;border-radius:4px;padding:.8rem 1rem;margin:.75rem 0}
+    .callout.warn{background:var(--alerte-bg);border-color:#ffd9a0}
     ul,ol{margin:.4rem 0;padding-left:1.2rem}
-    a.btn{display:inline-block;background:var(--bleu);color:#fff;text-decoration:none;font-weight:600;padding:.6rem 1.2rem;border-radius:4px;margin-top:.5rem}
-    footer{text-align:center;color:var(--doux);font-size:.85rem;padding:2rem 1rem}
-    .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--okbg);color:var(--ok)}
-    .pill.warn{background:var(--warnbg);color:var(--warn)}
+    .pill{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--succes-bg);color:var(--succes)}
+    .pill.warn{background:var(--alerte-bg);color:var(--alerte)}
+    .guide-header{background:var(--bleu);color:#fff;padding:2rem 1rem}
+    .guide-header h1{margin:0;font-size:1.6rem}
+    .guide-header p{margin:.4rem 0 0;opacity:.9}
+    .guide-main{padding:2rem 0 4rem}
+    .guide-footer{text-align:center;color:var(--texte-doux);font-size:.85rem;padding:2rem 1rem}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
+  <header class="guide-header">
+    <div class="guide-wrap">
       <h1>🛠️ Mode d'emploi — Administrateurs</h1>
       <p>Paramétrer l'outil dans Grist : services, cadres, codes, sécurité</p>
     </div>
   </header>
 
-  <main class="wrap">
+  <main class="guide-main">
+    <div class="guide-wrap">
     <nav class="toc">
       <strong>Sommaire</strong>
       <a href="#principe">1. Principe général</a>
@@ -57,7 +55,7 @@
       <a href="#technique">11. Déploiement technique</a>
     </nav>
 
-    <section id="principe">
+    <section class="guide-section" id="principe" class="guide-section">
       <h2>1. Principe général</h2>
       <p>L'outil propose <strong>trois espaces</strong> :</p>
       <ul>
@@ -68,7 +66,7 @@
       <p>C'est dans Grist que vous créez les services, activez les comptes cadres et ajustez le référentiel utilisé par les deux espaces web.</p>
     </section>
 
-    <section id="acces">
+    <section class="guide-section" id="acces">
       <h2>2. Accéder au document Grist</h2>
       <p>Le document <strong>GESTION-ETUDIANT</strong> est hébergé sur l'instance DINUM
         <a href="https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT/" target="_blank">grist.numerique.gouv.fr</a>,
@@ -77,7 +75,7 @@
       <div class="callout warn">Le document est privé : il faut un compte Grist avec les droits d'édition pour y accéder. L'accès anonyme est volontairement refusé.</div>
     </section>
 
-    <section id="etablissement">
+    <section class="guide-section" id="etablissement">
       <h2>3. Identité de l'établissement</h2>
       <p>Table <span class="code">ETABLISSEMENT</span> (première ligne uniquement) : l'identité affichée dans l'en-tête des espaces web. Elle permet de déployer l'outil pour un autre établissement sans toucher au code.</p>
       <table>
@@ -89,7 +87,7 @@
       <div class="callout">Si la table est absente ou vide, le site garde son affichage générique.</div>
     </section>
 
-    <section id="services">
+    <section class="guide-section" id="services">
       <h2>4. Gérer les services</h2>
       <p>Table <span class="code">SERVICES</span>, une ligne par service accueillant (ou non) des étudiants. Les sites géographiques sont, eux, listés dans la table <span class="code">SITES</span> (colonne <span class="code">NOM</span>).</p>
       <table>
@@ -105,7 +103,7 @@
       <div class="callout">Un cadre peut être responsable de plusieurs services (via <span class="code">Cadre_ref</span> sur plusieurs lignes, ou via <span class="code">Cadres_secondaires</span>) : un sélecteur lui permet alors de passer de l'un à l'autre dans son espace.</div>
     </section>
 
-    <section id="cadres">
+    <section class="guide-section" id="cadres">
       <h2>5. Gérer les comptes cadres</h2>
       <p>Table <span class="code">UTILISATEURS</span>, une ligne par cadre (ou responsable) susceptible de se connecter à l'espace cadre.</p>
       <table>
@@ -119,13 +117,13 @@
       <div class="callout warn">Un compte désactivé (<span class="code">Utilisateur_de_l_outil</span> décoché) reçoit un message d'erreur explicite à la connexion : « Ce compte a été désactivé : contactez l'administrateur ».</div>
     </section>
 
-    <section id="pole">
+    <section class="guide-section" id="pole">
       <h2>6. Cadres de pôle (CSS)</h2>
       <p>Le cadre supérieur de santé (CSS) d'un pôle a automatiquement accès à <strong>tous les services de son pôle</strong>, sans avoir à être ajouté service par service. Ce lien se règle sur la table <span class="code">Pole</span> : le champ <span class="code">CSS</span> pointe vers l'<span class="code">UTILISATEURS</span> qui doit superviser le pôle.</p>
       <p>Le CSS dispose des <strong>mêmes droits</strong> que les cadres de service (édition du planning, validation des déclarations, fiches étudiants) sur l'ensemble des services de son pôle.</p>
     </section>
 
-    <section id="codes">
+    <section class="guide-section" id="codes">
       <h2>7. Codes horaires et jours fériés</h2>
       <p>Table <span class="code">CODES_HORAIRES</span> : référentiel des codes utilisables dans le planning (ex. <span class="code">M</span> Matin, <span class="code">S</span> Soir, <span class="code">N</span> Nuit, <span class="code">J</span> Journée, <span class="code">R</span>/<span class="code">RH-S</span>/<span class="code">RH-D</span> Repos, <span class="code">IFSI</span>, <span class="code">ABS</span> Absence, <span class="code">JF</span> Jour férié, <span class="code">RF</span> Récupération jour férié). Chaque code porte ses horaires et le nombre d'heures associé, utilisés pour tous les calculs de compteurs.</p>
       <p>Table <span class="code">JOURS_FERIES</span> : liste des dates fériées de l'année. À tenir à jour chaque année civile — c'est elle qui pilote le grisage des jours fériés dans les plannings et le calcul des heures à réaliser (voir le mode d'emploi cadre, section jours fériés, pour le détail des règles).</p>
@@ -133,7 +131,7 @@
       <p>Les cadres peuvent aussi, depuis leur espace (onglet « Codes horaires »), <strong>choisir les codes actifs pour leur service</strong> et <strong>créer de nouveaux codes</strong> — ceux-ci s'ajoutent au référentiel commun <span class="code">CODES_HORAIRES</span>. Un code créé n'est jamais supprimé automatiquement : la suppression éventuelle relève de l'administrateur (attention aux plannings qui l'utilisent).</p>
     </section>
 
-    <section id="journal">
+    <section class="guide-section" id="journal">
       <h2>8. Journal d'activité</h2>
       <p>Table <span class="code">JOURNAL_ACTIVITE</span> : le Worker y consigne automatiquement les connexions et actions des étudiants et des cadres (colonnes <span class="code">Horodatage</span>, <span class="code">Role</span>, <span class="code">Qui</span>, <span class="code">Nom</span>, <span class="code">Action</span>, <span class="code">Detail</span>). Utile pour comprendre « qui a fait quoi » en cas de question.</p>
       <ul>
@@ -142,12 +140,12 @@
       </ul>
     </section>
 
-    <section id="satisfaction">
+    <section class="guide-section" id="satisfaction">
       <h2>9. Tableau de bord satisfaction</h2>
       <p>Une page Grist dédiée (« Tableau de bord satisfaction ») affiche les résultats des questionnaires envoyés aux étudiants en fin de stage : KPI globaux (nombre de réponses, note moyenne, taux de recommandation), scores par thème, verbatims (points forts, axes, suggestions) et fréquentation par service. Deux champs de dates permettent de restreindre la période analysée.</p>
     </section>
 
-    <section id="securite">
+    <section class="guide-section" id="securite">
       <h2>10. Sécurité — points d'attention</h2>
       <ul>
         <li>Le <strong>code anonymat</strong> étudiant (1<sup>re</sup> lettre prénom + date de naissance + 1<sup>re</sup> lettre nom) est volontairement simple : c'est un choix assumé, les données accessibles se limitent au planning de stage de l'étudiant concerné.</li>
@@ -157,15 +155,16 @@
       </ul>
     </section>
 
-    <section id="technique">
+    <section class="guide-section" id="technique">
       <h2>11. Déploiement technique</h2>
       <p>Cette section concerne uniquement la personne qui héberge et maintient le code de l'application (pas la gestion quotidienne des services et des cadres, décrite ci-dessus).</p>
       <p>L'application repose sur trois briques : le site (GitHub Pages, dossier <span class="code">docs/</span>), un proxy (Cloudflare Worker, dossier <span class="code">worker/</span>) qui protège la clé API Grist, et le document Grist lui-même. Le détail des étapes (clé API, déploiement du worker, configuration du site, sécurisation de l'origine) est décrit dans le <span class="code">README.md</span> du dépôt ; pour déployer une copie de l'outil pour un autre service ou établissement, voir <span class="code">INSTALL.md</span>.</p>
       <div class="callout">En résumé : clé API Grist → secret Cloudflare (<span class="code">wrangler secret put GRIST_API_KEY</span>) → <span class="code">wrangler deploy</span> → URL du worker renseignée dans <span class="code">docs/config.js</span> → site publié via GitHub Pages.</div>
     </section>
+    </div>
   </main>
 
-  <footer>
+  <footer class="guide-footer">
     Application <strong>GESTION ÉTUDIANT</strong> — conçue par M. Joan THUILLIER, Cadre Apprenant · Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
   </footer>
 </body>

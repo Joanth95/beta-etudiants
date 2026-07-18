@@ -4,48 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mode d'emploi — Espace étudiant</title>
+  <link rel="stylesheet" href="styles.css?v=22">
   <style>
-    :root{--bleu:#000091;--bleu2:#1212ff;--rouge:#ce0500;--fond:#f6f6f6;--bord:#ddd;--txt:#161616;--doux:#666;--ok:#18753c;--okbg:#e3fdeb;--warn:#b34000;--warnbg:#fff3e0;--radius:8px}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:"Marianne","Segoe UI",system-ui,sans-serif;background:var(--fond);color:var(--txt);line-height:1.6}
-    header{background:var(--bleu);color:#fff;padding:2rem 1rem}
-    .wrap{max-width:820px;margin:auto;padding:0 1rem}
-    header .wrap{padding:0 1rem}
-    h1{margin:0;font-size:1.6rem}
-    header p{margin:.4rem 0 0;opacity:.9}
-    main{padding:2rem 0 4rem}
-    nav.toc{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1rem 1.25rem;margin:1.5rem 0}
+    .guide-wrap{max-width:860px;margin:auto;padding:0 1rem}
+    nav.toc{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1rem 1.25rem;margin:1.5rem 0}
     nav.toc strong{display:block;margin-bottom:.5rem}
     nav.toc a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--bleu);text-decoration:none}
     nav.toc a:hover{text-decoration:underline}
-    section{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:1.25rem 1.5rem;margin:1rem 0}
-    section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
-    section h3{margin:1rem 0 .3rem;font-size:1rem}
+    .guide-section{background:#fff;border:1px solid var(--gris-bordure);border-radius:4px;padding:1.25rem 1.5rem;margin:1rem 0}
+    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu);display:flex;align-items:center;gap:.5rem}
+    .guide-section h3{margin:1rem 0 .3rem;font-size:1rem}
     .step{border-left:3px solid var(--bleu);padding:.2rem 0 .2rem 1rem;margin:.75rem 0}
-    code,.code{background:var(--fond);border:1px solid var(--bord);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
+    code,.code{background:var(--gris-fond);border:1px solid var(--gris-bordure);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
     .tag{display:inline-block;font-size:.8rem;font-weight:700;padding:.1rem .55rem;border-radius:999px}
-    .tag.ok{background:var(--okbg);color:var(--ok)}
-    .tag.warn{background:var(--warnbg);color:var(--warn)}
-    .tag.pending{background:var(--warnbg);color:var(--warn)}
+    .tag.ok{background:var(--succes-bg);color:var(--succes)}
+    .tag.warn{background:var(--alerte-bg);color:var(--alerte)}
+    .tag.pending{background:var(--alerte-bg);color:var(--alerte)}
     table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.92rem}
-    th,td{border:1px solid var(--bord);padding:.45rem .6rem;text-align:left}
-    th{background:var(--fond)}
-    .callout{background:#e8f0fe;border:1px solid #b8d0f8;border-radius:var(--radius);padding:.8rem 1rem;margin:.75rem 0}
-    .callout.warn{background:var(--warnbg);border-color:#ffd9a0}
+    th,td{border:1px solid var(--gris-bordure);padding:.45rem .6rem;text-align:left}
+    th{background:var(--gris-fond)}
+    .callout{background:var(--info-bg);border:1px solid #b8d0f8;border-radius:4px;padding:.8rem 1rem;margin:.75rem 0}
+    .callout.warn{background:var(--alerte-bg);border-color:#ffd9a0}
     ul{margin:.4rem 0 .4rem 0;padding-left:1.2rem}
-    a.btn{display:inline-block;background:var(--bleu);color:#fff;text-decoration:none;font-weight:600;padding:.6rem 1.2rem;border-radius:4px;margin-top:.5rem}
-    footer{text-align:center;color:var(--doux);font-size:.85rem;padding:2rem 1rem}
+    .guide-header{background:var(--bleu);color:#fff;padding:2rem 1rem}
+    .guide-header h1{margin:0;font-size:1.6rem}
+    .guide-header p{margin:.4rem 0 0;opacity:.9}
+    .guide-main{padding:2rem 0 4rem}
+    .guide-footer{text-align:center;color:var(--texte-doux);font-size:.85rem;padding:2rem 1rem}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
+  <header class="guide-header">
+    <div class="guide-wrap">
       <h1>🎓 Mode d'emploi — Espace étudiant</h1>
       <p>Consulter votre planning de stage et déclarer vos heures</p>
     </div>
   </header>
 
-  <main class="wrap">
+  <main class="guide-main">
+    <div class="guide-wrap">
     <nav class="toc">
       <strong>Sommaire</strong>
       <a href="#connexion">1. Se connecter</a>
@@ -57,7 +54,7 @@
       <a href="#faq">7. Questions fréquentes</a>
     </nav>
 
-    <section id="connexion">
+    <section class="guide-section" id="connexion" class="guide-section">
       <h2>1. Se connecter</h2>
       <p>Vous vous connectez avec votre <strong>code anonymat</strong>. Il se compose de :</p>
       <div class="step"><strong>1<sup>re</sup> lettre du prénom</strong> + <strong>date de naissance (JJMMAA)</strong> + <strong>1<sup>re</sup> lettre du nom</strong>, en majuscules.</div>
@@ -66,7 +63,7 @@
       <p>Vous pouvez aussi recevoir un <strong>lien de connexion directe</strong> intégrant déjà votre code : un simple clic vous connecte, sans avoir à le ressaisir.</p>
     </section>
 
-    <section id="entree">
+    <section class="guide-section" id="entree">
       <h2>2. Enregistrer son entrée en stage</h2>
       <p>À votre arrivée, si vous n'êtes pas encore enregistré, cliquez sur <strong>« Enregistrez votre entrée en stage »</strong> sur l'écran de connexion.</p>
       <h3>Ce qu'on vous demande</h3>
@@ -83,7 +80,7 @@
       <div class="callout warn">Important : votre inscription en ligne ne remplace pas la prise de contact avec le cadre. Appelez-le ou écrivez-lui pour confirmer votre arrivée.</div>
     </section>
 
-    <section id="planning">
+    <section class="guide-section" id="planning">
       <h2>3. Lire mon planning</h2>
       <p>La carte du haut résume votre stage : service, dates, et vos compteurs d'heures.</p>
       <table>
@@ -106,7 +103,7 @@
       </table>
     </section>
 
-    <section id="feries">
+    <section class="guide-section" id="feries">
       <h2>4. Comprendre les jours fériés</h2>
       <p>Un jour férié est signalé par une pastille <span class="tag warn">férié</span> sur la case du planning.</p>
       <ul>
@@ -116,7 +113,7 @@
       <div class="callout">En résumé : un jour férié ne vous pénalise jamais ; si vous le travaillez, vous gagnez une récupération. <em>(Conforme à l'arrêté du 31 juillet 2009.)</em></div>
     </section>
 
-    <section id="declarer">
+    <section class="guide-section" id="declarer">
       <h2>5. Déclarer des heures</h2>
       <p>Le bouton <strong>« + Déclarer »</strong> permet de signaler un écart par rapport au planning. Choisissez le type :</p>
       <table>
@@ -134,12 +131,12 @@
       </ul>
     </section>
 
-    <section id="periodes">
+    <section class="guide-section" id="periodes">
       <h2>6. Si vous avez plusieurs stages</h2>
       <p>Quand plusieurs périodes vous sont affectées, des <strong>onglets</strong> apparaissent en haut. Cliquez sur un onglet pour basculer : la carte, les déclarations et le planning s'adaptent à la période choisie. La période <span class="tag ok">en cours</span> est signalée.</p>
     </section>
 
-    <section id="faq">
+    <section class="guide-section" id="faq">
       <h2>7. Questions fréquentes</h2>
       <h3>J'ai oublié mon code</h3>
       <p>Recomposez-le : 1<sup>re</sup> lettre du prénom + date de naissance JJMMAA + 1<sup>re</sup> lettre du nom. En cas de doute, contactez le cadre de votre service.</p>
@@ -149,12 +146,12 @@
       <p>Il n'a pas encore été rempli par le service. Rapprochez-vous de votre cadre.</p>
       <a class="btn" href="index.html">← Retour à l'espace étudiant</a>
     </section>
+    </div>
   </main>
 
-      <footer class="app-footer">
-        Application développée par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant —
-        Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville<br>
-        <span class="beta-tag">Version bêta</span> — vos retours sont les bienvenus
-      </footer>
+  <footer class="guide-footer">
+    Application développée par <strong>M. Joan THUILLIER</strong>, Cadre de Santé Apprenant —
+    Pôle 9 Gérontologie-Gériatrie · CHR Metz-Thionville
+  </footer>
 </body>
 </html>
