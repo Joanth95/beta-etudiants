@@ -8,7 +8,7 @@ GRIST_BASE_URL = "https://grist.numerique.gouv.fr/api"
 
 # Identifiant du document Grist GESTION-ETUDIANT
 # (https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT)
-GRIST_DOC_ID = "qdm9zxQGmCPH"
+GRIST_DOC_ID = "9vaW4zNp32X4"
 
 # Origine autorisée : seul le site GitHub Pages peut appeler ce proxy
 ALLOWED_ORIGIN = "https://joanth95.github.io"
