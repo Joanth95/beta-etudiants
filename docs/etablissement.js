@@ -26,6 +26,13 @@
         t.textContent = cfg.sousTitre;
       });
     }
+    // Lien « Administration (Grist) » du pied de page : piloté par la colonne
+    // ETABLISSEMENT.Url_document_grist ; vide -> layout.js garde son lien par défaut.
+    if (cfg.urlDocumentGrist) {
+      document.querySelectorAll(".js-etab-admin").forEach((a) => {
+        a.href = cfg.urlDocumentGrist;
+      });
+    }
     // Logo de l'établissement (pièce jointe Grist servie par le Worker) ;
     // ?v=<logoId> invalide le cache navigateur quand le logo change.
     const api2 = ((window.CONFIG && window.CONFIG.API_URL) || "").replace(/\/$/, "");

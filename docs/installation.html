@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installation — Relier le site à votre document Grist</title>
+  <link rel="stylesheet" href="styles.css?v=22">
+  <script src="config.js?v=21"></script>
+  <style>
+    .guide-wrap{max-width:860px;margin:auto;padding:0 1rem}
+    main{padding:2rem 0 4rem}
+    nav.toc{background:var(--blanc);border:1px solid var(--gris-bordure);border-radius:4px;padding:1rem 1.25rem;margin:1.5rem 0}
+    nav.toc strong{display:block;margin-bottom:.5rem}
+    nav.toc a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--bleu);text-decoration:none}
+    nav.toc a:hover{text-decoration:underline}
+    .guide-section{background:var(--blanc);border:1px solid var(--gris-bordure);border-radius:4px;padding:1.25rem 1.5rem;margin:1rem 0}
+    .guide-section h2{margin:0 0 .5rem;font-size:1.2rem;color:var(--bleu)}
+    .guide-section h3{margin:1rem 0 .3rem;font-size:1rem}
+    code,.code{background:var(--gris-fond);border:1px solid var(--gris-bordure);border-radius:4px;padding:.1rem .4rem;font-family:ui-monospace,monospace;font-weight:600}
+    .callout{background:var(--info-bg);border:1px solid #b8d0f8;border-radius:4px;padding:.8rem 1rem;margin:.75rem 0}
+    .callout.warn{background:var(--alerte-bg);border-color:#ffd9a0}
+    ul,ol{margin:.4rem 0;padding-left:1.2rem}
+
+    /* Formulaire de configuration */
+    .config-form{display:flex;flex-direction:column;gap:1rem;margin-top:.75rem}
+    .config-form .field{display:flex;flex-direction:column;gap:.35rem}
+    .field-auto{font-size:.75rem;color:var(--texte-doux)}
+
+    /* Blocs de fichiers générés */
+    .file-block{border:1px solid var(--gris-bordure);border-radius:4px;margin:1rem 0;overflow:hidden}
+    .file-head{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;background:var(--gris-fond);border-bottom:1px solid var(--gris-bordure);padding:.45rem .75rem}
+    .file-head .file-name{font-family:ui-monospace,monospace;font-weight:700;font-size:.85rem}
+    .file-head .file-role{font-size:.78rem;color:var(--texte-doux);flex:1}
+    .file-head button{font:inherit;font-size:.78rem;font-weight:600;padding:.25rem .7rem;border:1px solid var(--bleu);background:transparent;color:var(--bleu);cursor:pointer;border-radius:3px}
+    .file-head button:hover{background:rgba(0,0,145,.06)}
+    pre.file-body{margin:0;padding:.9rem 1rem;overflow-x:auto;font-family:ui-monospace,monospace;font-size:.8rem;line-height:1.55;background:var(--blanc);white-space:pre}
+    pre.file-body .todo{color:var(--rouge);font-weight:700}
+
+    /* Test de connexion */
+    .test-results{display:flex;flex-direction:column;gap:.4rem;margin-top:.9rem}
+    .test-results:empty{display:none}
+    .test-line{display:flex;gap:.6rem;align-items:flex-start;font-size:.9rem;padding:.5rem .75rem;border-radius:4px;background:var(--gris-fond);border:1px solid var(--gris-bordure)}
+    .test-line.ok{background:var(--succes-bg);color:var(--succes);border-color:transparent}
+    .test-line.ko{background:var(--alerte-bg);color:var(--alerte);border-color:transparent}
+    .test-line .ico{flex:none}
+
+    @media (prefers-color-scheme: dark){
+      .callout{border-color:#33456e}
+      .callout.warn{border-color:#6b4a1a}
+    }
+  </style>
+</head>
+<body>
+  <header class="fr-header" data-title="Installation"
+          data-tagline="Relier le site à votre document Grist">
+    <div class="fr-header-tools">
+      <a class="btn btn-ghost" href="guide-admin.html">Guide administrateur</a>
+      <a class="btn btn-ghost" href="index.html">Espace étudiant</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="guide-wrap">
+
+      <nav class="toc">
+        <strong>Sommaire</strong>
+        <a href="#principe">1. Comment ça marche</a>
+        <a href="#grist">2. Préparer le document Grist</a>
+        <a href="#infos">3. Renseigner les informations</a>
+        <a href="#fichiers">4. Fichiers générés</a>
+        <a href="#formules">5. Liens internes à Grist</a>
+        <a href="#commandes">6. Commandes à exécuter</a>
+        <a href="#test">7. Tester la connexion</a>
+      </nav>
+
+      <div class="callout warn">
+        <strong>Licence :</strong> ce projet est protégé (tous droits réservés, voir
+        <span class="code">LICENSE</span>). Cette page ne vous autorise pas, à elle
+        seule, à déployer une copie : obtenez d'abord l'accord écrit de l'auteur.
+      </div>
+
+      <section class="guide-section" id="principe">
+        <h2>1. Comment ça marche</h2>
+        <p>L'application repose sur <strong>trois briques indépendantes</strong>,
+          à relier entre elles :</p>
+        <ul>
+          <li><strong>Le document Grist</strong> — la base de données (étudiants,
+            stages, plannings, cadres…) ;</li>
+          <li><strong>Le Worker Cloudflare</strong> (dossier <span class="code">worker/</span>)
+            — un proxy qui interroge Grist à la place du site et garde la clé API
+            secrète ;</li>
+          <li><strong>Le site</strong> (dossier <span class="code">docs/</span>,
+            publié sur GitHub Pages) — les espaces étudiant et cadre, qui ne
+            parlent qu'au Worker.</li>
+        </ul>
+        <p>Déployer sur un autre établissement = copier le document Grist, déployer
+          un Worker qui pointe dessus, et publier le site avec l'URL de ce Worker.
+          Cette page génère pour vous les <strong>deux fichiers de liaison</strong>
+          (<span class="code">worker/wrangler.toml</span> et
+          <span class="code">docs/config.js</span>) à partir de vos liens.</p>
+        <p>Prérequis : un compte Grist (par ex.
+          <a href="https://grist.numerique.gouv.fr" target="_blank" rel="noopener">Grist DINUM</a>),
+          un compte <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">Cloudflare</a>
+          (gratuit), un compte GitHub et Node.js sur votre poste. Le pas-à-pas
+          complet est dans <span class="code">INSTALL.md</span> à la racine du dépôt.</p>
+      </section>
+
+      <section class="guide-section" id="grist">
+        <h2>2. Préparer le document Grist</h2>
+        <ol>
+          <li>Depuis le document d'origine : menu <strong>Fichier → Faire une
+            copie</strong>, vers votre organisation/espace Grist. Toutes les tables,
+            colonnes et formules sont copiées.</li>
+          <li>Dans la copie, <strong>videz les données</strong>
+            (<span class="code">LISTE_DES_ETUDIANTS</span>,
+            <span class="code">PERIODES_DE_STAGE</span>,
+            <span class="code">PLANNING_HEBDO</span>,
+            <span class="code">Sortie_de_stage</span>,
+            <span class="code">EVALUATION_STAGE_ETUDIANT</span>) et
+            <strong>adaptez les références</strong>
+            (<span class="code">SERVICES</span>, <span class="code">UTILISATEURS</span>,
+            <span class="code">CODES_HORAIRES</span>, <span class="code">JOURS_FERIES</span>,
+            <span class="code">ETABLISSEMENT</span>…).</li>
+          <li>Récupérez une <strong>clé API Grist</strong> : avatar en haut à droite
+            → Paramètres du profil → Clé API. Le compte doit avoir accès en
+            <strong>écriture</strong> au document.</li>
+        </ol>
+        <div class="callout warn">
+          <strong>La clé API ne se saisit nulle part sur ce site.</strong> Elle ne
+          doit jamais apparaître dans le code ni dans un fichier du dépôt : elle
+          sera enregistrée comme <em>secret</em> Cloudflare à l'étape 6
+          (<span class="code">npx wrangler secret put GRIST_API_KEY</span>).
+        </div>
+      </section>
+
+      <section class="guide-section" id="infos">
+        <h2>3. Renseigner les informations</h2>
+        <p>Les champs sont enregistrés dans votre navigateur (aucune donnée n'est
+          envoyée) : vous pouvez revenir compléter plus tard.</p>
+        <div class="config-form">
+          <div class="field">
+            <label for="grist-url">URL du document Grist
+              <span class="fr-hint-text">Copiez l'adresse du document ouvert dans votre navigateur —
+                l'instance et l'identifiant sont détectés automatiquement.</span>
+            </label>
+            <input id="grist-url" type="url" autocomplete="off" spellcheck="false"
+                   placeholder="https://grist.numerique.gouv.fr/o/mon-etablissement/abc123DEF456/GESTION-ETUDIANT/">
+            <span class="field-auto" id="grist-url-info"></span>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="grist-base">API de l'instance Grist
+                <span class="fr-hint-text">Variable <code>GRIST_BASE_URL</code></span>
+              </label>
+              <input id="grist-base" type="url" autocomplete="off" spellcheck="false"
+                     placeholder="https://grist.numerique.gouv.fr/api">
+            </div>
+            <div class="field">
+              <label for="grist-doc">Identifiant du document
+                <span class="fr-hint-text">Variable <code>GRIST_DOC_ID</code></span>
+              </label>
+              <input id="grist-doc" type="text" autocomplete="off" spellcheck="false"
+                     placeholder="abc123DEF456">
+            </div>
+          </div>
+          <div class="field">
+            <label for="site-url">URL du site publié (GitHub Pages)
+              <span class="fr-hint-text">Par ex. <code>https://votrecompte.github.io/votre-depot/</code> —
+                seule l'origine (<code>https://votrecompte.github.io</code>) est utilisée pour
+                <code>ALLOWED_ORIGIN</code> : aucun autre site ne pourra appeler votre Worker.</span>
+            </label>
+            <input id="site-url" type="url" autocomplete="off" spellcheck="false"
+                   placeholder="https://votrecompte.github.io/votre-depot/">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="worker-name">Nom du Worker Cloudflare
+                <span class="fr-hint-text">Libre, unique sur votre compte (minuscules et tirets)</span>
+              </label>
+              <input id="worker-name" type="text" autocomplete="off" spellcheck="false"
+                     placeholder="mon-espace-etudiant-api">
+            </div>
+            <div class="field">
+              <label for="worker-url">URL du Worker <span class="optional">(après déploiement)</span>
+                <span class="fr-hint-text">Affichée par <code>npx wrangler deploy</code> à l'étape 6</span>
+              </label>
+              <input id="worker-url" type="url" autocomplete="off" spellcheck="false"
+                     placeholder="https://mon-espace-etudiant-api.votrecompte.workers.dev">
+            </div>
+          </div>
+          <div class="field">
+            <label for="form-url">URL du formulaire d'évaluation Grist <span class="optional">(facultatif)</span>
+              <span class="fr-hint-text">Formulaire publié sur la table <code>EVALUATION_STAGE_ETUDIANT</code>
+                de votre copie (champ caché <code>Cle_lien</code> prérempli) — à coller dans la
+                colonne <code>Url_formulaire_evaluation</code> de la table
+                <code>ETABLISSEMENT</code> (étape 5).</span>
+            </label>
+            <input id="form-url" type="url" autocomplete="off" spellcheck="false"
+                   placeholder="https://grist.numerique.gouv.fr/forms/xxxxxxxxxxxxxxxxxxxxxx/124">
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section" id="fichiers">
+        <h2>4. Fichiers générés</h2>
+        <p>Remplacez le contenu de ces fichiers dans votre copie du dépôt par les
+          versions ci-dessous (mises à jour en direct à partir de l'étape 3 ; les
+          parties <span class="todo" style="color:var(--rouge);font-weight:700">‹À COMPLÉTER›</span>
+          correspondent aux champs encore vides).</p>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">worker/wrangler.toml</span>
+            <span class="file-role">relie le Worker au document Grist</span>
+            <button type="button" data-copy="out-wrangler">Copier</button>
+            <button type="button" data-download="out-wrangler" data-filename="wrangler.toml">Télécharger</button>
+          </div>
+          <pre class="file-body" id="out-wrangler"></pre>
+        </div>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">docs/config.js</span>
+            <span class="file-role">relie le site au Worker</span>
+            <button type="button" data-copy="out-config">Copier</button>
+            <button type="button" data-download="out-config" data-filename="config.js">Télécharger</button>
+          </div>
+          <pre class="file-body" id="out-config"></pre>
+        </div>
+
+        <div class="callout">
+          Pensez aussi à personnaliser les textes en dur (nom du développeur
+          d'origine, pôle, établissement) listés à l'étape 5 d'<span class="code">INSTALL.md</span>,
+          et à renseigner la table <span class="code">ETABLISSEMENT</span> dans Grist
+          (nom, sous-titre, logo affichés sur le site).
+        </div>
+      </section>
+
+      <section class="guide-section" id="formules">
+        <h2>5. Liens internes à Grist</h2>
+        <p>Le document Grist contient lui aussi des liens vers le site. Plutôt que
+          de les laisser codés en dur dans chaque formule, ils sont
+          <strong>centralisés dans la table <span class="code">ETABLISSEMENT</span></strong>
+          (celle qui porte déjà le nom et le logo affichés sur le site) : les
+          formules lisent la table, et changer une valeur dans la table met à
+          jour tout le document automatiquement.</p>
+
+        <h3>a. Colonnes à ajouter à la table ETABLISSEMENT</h3>
+        <p>Quatre colonnes de type <strong>Texte</strong> (données, pas formules),
+          sur la première ligne de la table. <span class="code">Url_document_grist</span>
+          alimente le lien « Administration (Grist) » du pied de page du site,
+          via l'endpoint <span class="code">/api/config</span> du Worker :</p>
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">ETABLISSEMENT — valeurs à saisir</span>
+            <span class="file-role">reprises des champs de l'étape 3</span>
+            <button type="button" data-copy="out-etab-values">Copier</button>
+          </div>
+          <pre class="file-body" id="out-etab-values"></pre>
+        </div>
+
+        <h3>b. Formules à remplacer — une seule fois</h3>
+        <p>Ces formules ne contiennent <strong>plus aucune URL</strong> : elles
+          sont identiques pour tous les établissements. Faites le remplacement
+          une seule fois (dans le document d'origine ou dans la copie) ; ensuite,
+          chaque nouveau déploiement n'a plus qu'à remplir la table
+          <span class="code">ETABLISSEMENT</span>. Pour chaque colonne : ouvrez la
+          table, sélectionnez la colonne, panneau latéral « Colonne » → formule.</p>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">LISTE_DES_ETUDIANTS → Lien_connexion</span>
+            <span class="file-role">lien de connexion directe de l'étudiant</span>
+            <button type="button" data-copy="out-f-etudiant">Copier</button>
+          </div>
+          <pre class="file-body" id="out-f-etudiant">p = ETABLISSEMENT.lookupOne()
+base = p.Url_site.rstrip("/") + "/" if p and p.Url_site else ""
+return f"{base}index.html?code={rec.Anonymat}" if rec.Anonymat and base else ""</pre>
+        </div>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">UTILISATEURS → colonne A</span>
+            <span class="file-role">lien de connexion directe du cadre</span>
+            <button type="button" data-copy="out-f-cadre">Copier</button>
+          </div>
+          <pre class="file-body" id="out-f-cadre">p = ETABLISSEMENT.lookupOne()
+base = p.Url_site.rstrip("/") + "/" if p and p.Url_site else ""
+return f"{base}espace-cadre.html?email={rec.Email}&amp;code={rec.Code_acces}" if rec.Code_acces and base else ""</pre>
+        </div>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">PERIODES_DE_STAGE → Lien_evaluation</span>
+            <span class="file-role">lien du questionnaire d'évaluation envoyé aux étudiants</span>
+            <button type="button" data-copy="out-f-eval">Copier</button>
+          </div>
+          <pre class="file-body" id="out-f-eval">p = ETABLISSEMENT.lookupOne()
+url = p.Url_formulaire_evaluation if p else ""
+return f"{url}?Cle_lien={$UUID or ''}" if url else ""</pre>
+        </div>
+        <div class="callout">Le formulaire d'évaluation appartient à chaque
+          document : dans une copie, créez un <strong>formulaire Grist</strong>
+          sur la table <span class="code">EVALUATION_STAGE_ETUDIANT</span> (champ
+          caché <span class="code">Cle_lien</span>), publiez-le, et collez son URL
+          dans la colonne <span class="code">Url_formulaire_evaluation</span>.
+          Tant qu'elle est vide, l'onglet « Envoi des évaluations » affiche
+          simplement « Lien non généré ».</div>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">UTILISATEURS → Envoyer_l_invitation</span>
+            <span class="file-role">mail d'invitation des cadres (lien et signature paramétrés)</span>
+            <button type="button" data-copy="out-f-invitation">Copier</button>
+          </div>
+          <pre class="file-body" id="out-f-invitation">p = ETABLISSEMENT.lookupOne()
+base = p.Url_site.rstrip("/") + "/" if p and p.Url_site else ""
+if not ($Utilisateur_de_l_outil and $Code_acces and $Email and base):
+  return ""
+import urllib.parse
+lien = urllib.parse.quote(
+  f"{base}espace-cadre.html?email={$Email}&amp;code={$Code_acces}", safe="")
+sig = urllib.parse.quote(getattr(p, "Signature_invitation", "") or "", safe="")
+return (
+  "mailto:" + $Email +
+  "?subject=Vos%20identifiants%20pour%20l%27espace%20cadre%20%F0%9F%94%91" +
+  "&amp;body=" +
+  "Bonjour%20%F0%9F%91%8B%2C%0A%0AVoici%20vos%20identifiants%20pour%20acc%C3%A9der%20%C3%A0%20l%27espace%20cadre%20en%20ligne%20%28planning%2C%20validations%2C%20fiches%20%C3%A9tudiants%29%20%3A%0A%0A%E2%80%A2%20Email%20%3A%20" + $Email +
+  "%0A%E2%80%A2%20Code%20d%27acc%C3%A8s%20%3A%20" + $Code_acces +
+  "%0A%0A%F0%9F%94%97%20Lien%20de%20connexion%20directe%20%28pas%20besoin%20de%20ressaisir%20vos%20identifiants%29%20%3A%0A" + lien +
+  "%0A%0AComment%20%C3%A7a%20marche%20%3A%0A%E2%9C%85%20D%C3%A9clarations%20%C3%A0%20valider%20%E2%86%92%20validez%20les%20heures%20d%C3%A9clar%C3%A9es%20par%20les%20%C3%A9tudiants%0A%F0%9F%91%A8%E2%80%8D%F0%9F%8E%93%20Dossier%20%C3%A9tudiants%20%E2%86%92%20fiche%20de%20chaque%20%C3%A9tudiant%20%2B%20planning%20individuel%0A%F0%9F%93%85%20Planning%20de%20service%20%E2%86%92%20planning%20commun%20sur%2030%20jours%2C%20modifiable%20case%20par%20case%0A%F0%9F%93%9D%20Envoi%20des%20%C3%A9valuations%20%E2%86%92%20envoyer%20le%20questionnaire%20de%20satisfaction%20en%20fin%20de%20stage%0A%0A%F0%9F%93%96%20Un%20mode%20d%27emploi%20complet%20est%20accessible%20depuis%20la%20page%20de%20connexion.%0A%0AN%27h%C3%A9sitez%20pas%20%C3%A0%20me%20contacter%20en%20cas%20de%20question%20ou%20de%20souci%20%F0%9F%98%8A%0A%0A%C3%80%20bient%C3%B4t%2C%0A" + sig
+)</pre>
+        </div>
+        <div class="callout">Le lien encodé et la signature viennent maintenant de
+          la table (<span class="code">Url_site</span>,
+          <span class="code">Signature_invitation</span>). La phrase « version
+          bêta » du mail d'origine a été retirée de ce modèle : ajoutez vos
+          propres mentions directement dans le texte encodé si besoin.</div>
+
+        <h3>Widgets personnalisés à repointer</h3>
+        <p>Trois vues du document sont des widgets hébergés sur le site : pour
+          chacune, ouvrez la vue, panneau latéral « Widget », et remplacez l'URL
+          par celle générée ci-dessous.</p>
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">Widgets</span>
+            <span class="file-role">génération des semaines · planning cadre · envoi des évaluations</span>
+            <button type="button" data-copy="out-widgets">Copier</button>
+          </div>
+          <pre class="file-body" id="out-widgets"></pre>
+        </div>
+      </section>
+
+      <section class="guide-section" id="commandes">
+        <h2>6. Commandes à exécuter</h2>
+        <p>Dans un terminal, à la racine de votre copie du dépôt (une fois
+          <span class="code">wrangler.toml</span> mis à jour) :</p>
+
+        <div class="file-block">
+          <div class="file-head">
+            <span class="file-name">Terminal</span>
+            <span class="file-role">déploie le Worker (proxy)</span>
+            <button type="button" data-copy="out-commands">Copier</button>
+          </div>
+          <pre class="file-body" id="out-commands">cd worker
+npm install
+npx wrangler login                     # ouvre le navigateur pour autoriser
+npx wrangler secret put GRIST_API_KEY  # collez ici la clé API Grist (étape 2)
+npx wrangler deploy                    # affiche l'URL du Worker</pre>
+        </div>
+
+        <p><span class="code">npx wrangler deploy</span> affiche l'URL du Worker :
+          reportez-la dans le champ « URL du Worker » de l'étape 3, mettez à jour
+          <span class="code">docs/config.js</span> avec le contenu régénéré, puis
+          poussez le dépôt sur GitHub et activez GitHub Pages
+          (<em>Settings → Pages → branche <span class="code">main</span>, dossier
+          <span class="code">/docs</span></em>).</p>
+      </section>
+
+      <section class="guide-section" id="test">
+        <h2>7. Tester la connexion</h2>
+        <p>Vérifie que le Worker répond et qu'il accède bien à votre document
+          Grist (endpoints publics uniquement, aucune donnée nominative).</p>
+        <p><button type="button" class="btn btn-primary" id="btn-test">Tester la connexion</button></p>
+        <div class="test-results" id="test-results"></div>
+        <div class="callout" id="test-cors-hint" hidden>
+          <strong>Le test échoue en « erreur réseau » ?</strong> Le Worker n'accepte
+          que les appels venant de l'origine déclarée dans
+          <span class="code">ALLOWED_ORIGIN</span>. Si vous ouvrez cette page depuis
+          une autre adresse (poste local, autre site), le navigateur bloque l'appel :
+          refaites le test depuis cette même page <strong>une fois le site publié</strong>
+          à l'adresse renseignée à l'étape 3, ou vérifiez l'URL du Worker.
+        </div>
+        <h3>Vérifications finales</h3>
+        <ul>
+          <li><span class="code">index.html</span> : connexion avec un code anonymat de test ;</li>
+          <li><span class="code">entree-stage.html</span> : auto-inscription d'un étudiant fictif ;</li>
+          <li><span class="code">espace-cadre.html</span> : connexion d'un cadre
+            (email + <span class="code">Code_acces</span> de la table
+            <span class="code">UTILISATEURS</span>) ;</li>
+          <li>une modification faite sur le site apparaît bien dans le document Grist.</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="fr-footer" data-no-admin></footer>
+
+  <script src="layout.js?v=24"></script>
+  <script src="etablissement.js?v=23"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var KEY = "installation-config";
+      var FIELDS = ["grist-url", "grist-base", "grist-doc", "site-url", "worker-name", "worker-url", "form-url"];
+      var TODO = "‹À COMPLÉTER›"; // ‹À COMPLÉTER›
+
+      function $(id) { return document.getElementById(id); }
+      function val(id) { return ($(id).value || "").trim(); }
+
+      /* ---------- Analyse de l'URL du document Grist ----------
+         Formats reconnus :
+           https://instance/o/<org>/<DOC_ID>/<Nom>/...   (le plus courant)
+           https://instance/o/<org>/doc/<DOC_ID>/...
+           https://instance/doc/<DOC_ID>/...
+           https://instance/<DOC_ID>/<Nom>/...
+         Le DOC_ID est un segment alphanumérique d'au moins 10 caractères. */
+      function parseGristUrl(raw) {
+        var url;
+        try { url = new URL(raw); } catch (e) { return null; }
+        var parts = url.pathname.split("/").filter(Boolean);
+        var docId = null;
+        var docIdx = parts.indexOf("doc");
+        if (docIdx >= 0 && parts[docIdx + 1]) {
+          docId = parts[docIdx + 1];
+        } else {
+          var candidates = parts;
+          var oIdx = parts.indexOf("o");
+          if (oIdx >= 0) candidates = parts.slice(oIdx + 2); // saute "o" et l'organisation
+          for (var i = 0; i < candidates.length; i++) {
+            if (/^[A-Za-z0-9]{10,}$/.test(candidates[i])) { docId = candidates[i]; break; }
+          }
+        }
+        if (!docId || !/^[A-Za-z0-9]{10,}$/.test(docId)) return null;
+        // URL propre du document (sans page /p/N ni paramètres) pour le lien
+        // « Administration (Grist) » du pied de page.
+        var idx = parts.indexOf(docId);
+        var kept = parts.slice(0, idx + 1);
+        if (parts[idx + 1] && parts[idx + 1] !== "p") kept.push(parts[idx + 1]);
+        return {
+          base: url.origin + "/api",
+          docId: docId,
+          docUrl: url.origin + "/" + kept.join("/") + "/",
+        };
+      }
+
+      /* Origine seule d'une URL (pour ALLOWED_ORIGIN) */
+      function originOf(raw) {
+        try { return new URL(raw).origin; } catch (e) { return ""; }
+      }
+
+      /* URL nettoyée du Worker (sans / final) */
+      function apiUrl() {
+        var u = val("worker-url").replace(/\/+$/, "");
+        if (u && !/^https?:\/\//.test(u)) u = "https://" + u;
+        return u;
+      }
+
+      /* ---------- Génération des fichiers ---------- */
+
+      /* Remplit un <pre> en marquant les valeurs manquantes en rouge */
+      function render(pre, segments) {
+        pre.textContent = "";
+        segments.forEach(function (seg) {
+          if (seg && seg.todo) {
+            var span = document.createElement("span");
+            span.className = "todo";
+            span.textContent = TODO;
+            pre.appendChild(span);
+          } else {
+            pre.appendChild(document.createTextNode(seg));
+          }
+        });
+      }
+
+      function v(value) { return value ? value : { todo: true }; }
+
+      function regenerate() {
+        var base = val("grist-base");
+        var doc = val("grist-doc");
+        var origin = originOf(val("site-url"));
+        var name = val("worker-name");
+        var api = apiUrl();
+
+        render($("out-wrangler"), [
+          'name = "', v(name), '"\n',
+          'main = "src/index.js"\n',
+          'compatibility_date = "2026-01-01"\n\n',
+          "[vars]\n",
+          "# URL de l'API de l'instance Grist\n",
+          'GRIST_BASE_URL = "', v(base), '"\n\n',
+          "# Identifiant du document Grist GESTION-ETUDIANT\n",
+          'GRIST_DOC_ID = "', v(doc), '"\n\n',
+          "# Origine autorisée : seul ce site peut appeler le proxy\n",
+          'ALLOWED_ORIGIN = "', v(origin), '"\n\n',
+          "# La clé API Grist est un SECRET, ne jamais la mettre ici.\n",
+          "# La définir avec :  npx wrangler secret put GRIST_API_KEY\n",
+        ]);
+
+        render($("out-config"), [
+          "// Configuration de l'espace étudiant.\n",
+          "// URL du proxy Cloudflare Worker (voir worker/).\n",
+          "window.CONFIG = {\n",
+          '  API_URL: "', v(api), '",\n',
+          "};\n",
+        ]);
+
+        // --- Liens internes à Grist (étape 5) ---
+        // Les formules sont statiques (elles lisent la table ETABLISSEMENT) :
+        // seules les valeurs à saisir dans la table sont générées ici.
+        // Url_document_grist alimente aussi le lien admin du pied de page
+        // (endpoint /api/config du Worker) : plus rien à éditer dans layout.js.
+        var parsed = parseGristUrl(val("grist-url"));
+        var docUrl = parsed ? parsed.docUrl : val("grist-url").replace(/\/+$/, "");
+        if (docUrl) docUrl = docUrl.replace(/\/*$/, "/");
+        var siteBase = val("site-url");
+        if (siteBase) siteBase = siteBase.replace(/\/*$/, "/");
+
+        render($("out-etab-values"), [
+          "Url_site                  : ", v(siteBase), "\n",
+          "Url_document_grist        : ", v(docUrl), "\n",
+          "Url_formulaire_evaluation : ", v(val("form-url")), "\n",
+          "Signature_invitation      : votre nom et fonction (signature du mail d'invitation)\n",
+        ]);
+
+        render($("out-widgets"), [
+          "Génération des semaines : ", v(siteBase ? siteBase + "generer-semaines.html" : ""), "\n",
+          "Planning cadre          : ", v(siteBase ? siteBase + "planning-cadre.html" : ""), "\n",
+          "Envoi des évaluations   : ", v(siteBase ? siteBase + "envoyer-evaluation.html" : ""), "\n",
+        ]);
+      }
+
+      /* ---------- Persistance locale ---------- */
+
+      function save() {
+        var data = {};
+        FIELDS.forEach(function (id) { data[id] = val(id); });
+        try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* stockage plein : ignoré */ }
+      }
+
+      function restore() {
+        var data;
+        try { data = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { data = null; }
+        if (!data) return;
+        FIELDS.forEach(function (id) { if (data[id]) $(id).value = data[id]; });
+      }
+
+      /* ---------- Écouteurs ---------- */
+
+      $("grist-url").addEventListener("input", function () {
+        var parsed = parseGristUrl(val("grist-url"));
+        var info = $("grist-url-info");
+        if (parsed) {
+          $("grist-base").value = parsed.base;
+          $("grist-doc").value = parsed.docId;
+          info.textContent = "Instance et identifiant détectés : " + parsed.base + " · " + parsed.docId;
+        } else {
+          info.textContent = val("grist-url")
+            ? "Identifiant introuvable dans cette URL : vérifiez le lien, ou remplissez les deux champs ci-dessous à la main."
+            : "";
+        }
+      });
+
+      FIELDS.forEach(function (id) {
+        $(id).addEventListener("input", function () { regenerate(); save(); });
+      });
+
+      /* Copier / télécharger */
+      document.querySelectorAll("[data-copy]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var text = $(btn.dataset.copy).textContent;
+          var done = function () {
+            var old = btn.textContent;
+            btn.textContent = "Copié ✓";
+            setTimeout(function () { btn.textContent = old; }, 1500);
+          };
+          var fallback = function () {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); done(); } catch (e) { /* copie impossible */ }
+            ta.remove();
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, fallback);
+          } else {
+            fallback();
+          }
+        });
+      });
+      document.querySelectorAll("[data-download]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var blob = new Blob([$(btn.dataset.download).textContent], { type: "text/plain;charset=utf-8" });
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = btn.dataset.filename;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      });
+
+      /* ---------- Test de connexion ---------- */
+
+      function line(status, text) {
+        var div = document.createElement("div");
+        div.className = "test-line " + status;
+        var ico = document.createElement("span");
+        ico.className = "ico";
+        ico.textContent = status === "ok" ? "✅" : status === "ko" ? "❌" : "⏳";
+        var msg = document.createElement("span");
+        msg.textContent = text;
+        div.appendChild(ico);
+        div.appendChild(msg);
+        $("test-results").appendChild(div);
+        return function (newStatus, newText) {
+          div.className = "test-line " + newStatus;
+          ico.textContent = newStatus === "ok" ? "✅" : newStatus === "ko" ? "❌" : "⚠️";
+          msg.textContent = newText;
+        };
+      }
+
+      $("btn-test").addEventListener("click", function () {
+        var results = $("test-results");
+        results.textContent = "";
+        $("test-cors-hint").hidden = true;
+        var api = apiUrl();
+        if (!api) {
+          line("ko", "Renseignez d'abord l'URL du Worker (étape 3, après déploiement).");
+          return;
+        }
+        var btn = $("btn-test");
+        btn.disabled = true;
+
+        var t1 = line("wait", "Worker → Grist (établissement)…");
+        var p1 = fetch(api + "/api/config")
+          .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .then(function (cfg) {
+            t1("ok", cfg && cfg.nom
+              ? "Worker joignable et document Grist accessible — établissement : « " + cfg.nom + " »."
+              : "Worker joignable et document Grist accessible. Table ETABLISSEMENT vide : renseignez-la pour afficher le nom et le logo de l'établissement.");
+          })
+          .catch(function (err) {
+            if (err instanceof TypeError) {
+              t1("ko", "Erreur réseau : Worker injoignable à cette adresse, ou appel bloqué par ALLOWED_ORIGIN (voir encadré ci-dessous).");
+              $("test-cors-hint").hidden = false;
+            } else {
+              t1("ko", "Le Worker répond mais Grist est inaccessible (" + err.message + ") : vérifiez GRIST_DOC_ID, GRIST_BASE_URL et le secret GRIST_API_KEY.");
+            }
+          });
+
+        var t2 = line("wait", "Liste des services…");
+        var p2 = fetch(api + "/api/services")
+          .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .then(function (data) {
+            var n = (data && data.services && data.services.length) || 0;
+            t2(n ? "ok" : "warn", n
+              ? n + " service(s) ouvert(s) aux étudiants : l'auto-inscription fonctionnera."
+              : "Aucun service ouvert : cochez « Recoit_des_etudiant » dans la table SERVICES pour au moins un service.");
+          })
+          .catch(function (err) {
+            t2("ko", err instanceof TypeError
+              ? "Erreur réseau (voir ci-dessus)."
+              : "Échec (" + err.message + ") : vérifiez les tables SERVICES, UTILISATEURS et SITES du document.");
+          });
+
+        Promise.allSettled([p1, p2]).then(function () { btn.disabled = false; });
+      });
+
+      /* ---------- Initialisation ---------- */
+      restore();
+      // Pré-remplit l'URL du Worker avec celle du site courant si déjà configurée
+      if (!val("worker-url") && window.CONFIG && window.CONFIG.API_URL) {
+        $("worker-url").value = window.CONFIG.API_URL;
+      }
+      regenerate();
+    })();
+  </script>
+</body>
+</html>
