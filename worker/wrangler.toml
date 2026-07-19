@@ -14,3 +14,4 @@ ALLOWED_ORIGIN = "https://joanth95.github.io"
 
 # La clé API Grist est un SECRET, ne jamais la mettre ici.
 # La définir avec :  npx wrangler secret put GRIST_API_KEY
+ 
