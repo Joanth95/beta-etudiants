@@ -76,8 +76,8 @@ a { color: var(--bleu); }
 /* Logo de l'établissement (pièce jointe Grist, table ETABLISSEMENT) */
 .js-etab-logo {
   display: block;
-  max-height: 3.25rem;
-  max-width: 8.5rem;
+  max-height: 4.5rem;
+  max-width: 11rem;
   object-fit: contain;
 }
 .fr-footer .js-etab-logo { max-height: 3rem; }
