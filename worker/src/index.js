@@ -36,6 +36,8 @@
  *   POST   /api/cadre/sorties  { periodeId, ... }      -> déclarer des heures pour un étudiant (en attente)
  *   PATCH  /api/cadre/planning/:semaineId { jour, codeId } -> édite une case du planning
  *   PATCH  /api/cadre/periodes/:id  { Tuteur, Niveau, Du, Au } -> édite une fiche de période
+ *   DELETE /api/cadre/periodes/:id                     -> supprime une période déclarée par erreur
+ *                                                         (+ semaines de planning et RDV rattachés)
  *   PATCH  /api/cadre/profil  { Telephone }                   -> modifie son propre numéro de téléphone
  *   PATCH  /api/cadre/services/:id  { codes: [ids] }          -> codes horaires actifs du service
  *                                                                (SERVICES.Codes_horaires ; vide = tous)
@@ -154,6 +156,7 @@ async function route(request, env, ctx) {
       action: "Connexion",
     });
     purgeJournal(env, ctx);
+    purgePlanningsOrphelins(env, ctx);
     return json(payload);
   }
   if (request.method === "POST" && path === "/api/cadre/login") {
@@ -167,6 +170,7 @@ async function route(request, env, ctx) {
       action: "Connexion",
     });
     purgeJournal(env, ctx);
+    purgePlanningsOrphelins(env, ctx);
     return json(payload);
   }
   // --- Endpoints cadre authentifiés ---
@@ -213,6 +217,10 @@ async function route(request, env, ctx) {
     if (request.method === "PATCH" && pm) {
       return withLog(env, ctx, who, "Modification fiche période", `période #${pm[1]}`,
         () => updatePeriode(request, env, cadre, Number(pm[1])));
+    }
+    if (request.method === "DELETE" && pm) {
+      return withLog(env, ctx, who, "Suppression d'une période de stage", `période #${pm[1]}`,
+        () => supprimerPeriode(env, ctx, cadre, Number(pm[1])));
     }
     const im = path.match(/^\/api\/cadre\/periodes\/(\d+)\/planning-imprimable$/);
     if (request.method === "GET" && im) {
@@ -909,6 +917,34 @@ async function updatePeriode(request, env, cadre, periodeId) {
 
   await gristUpdate(env, T_PERIODES, periodeId, fields);
   return json({ ok: true });
+}
+
+/**
+ * Supprime une période de stage déclarée par erreur (service du cadre), avec
+ * ses semaines de planning (PLANNING_HEBDO) et ses rendez-vous formateur.
+ * Les déclarations Sortie_de_stage ne sont pas touchées : elles appartiennent
+ * à l'étudiant et se rattachent par date via la formule Grist.
+ */
+async function supprimerPeriode(env, ctx, cadre, periodeId) {
+  await ensurePeriodeInScope(env, cadre, periodeId);
+
+  const [semaines, rdvs] = await Promise.all([
+    gristFilter(env, T_HEBDO, { Periode: [periodeId] }),
+    gristFilter(env, T_RDV, { Periode: [periodeId] }),
+  ]);
+  if (semaines.length) {
+    await grist(env, "POST", `/tables/${T_HEBDO}/data/delete`, semaines.map((s) => s.id));
+  }
+  if (rdvs.length) {
+    await grist(env, "POST", `/tables/${T_RDV}/data/delete`, rdvs.map((r) => r.id));
+  }
+  await grist(env, "POST", `/tables/${T_PERIODES}/data/delete`, [periodeId]);
+
+  // Filet de sécurité : si une suppression précédente s'est interrompue à
+  // mi-chemin, des semaines orphelines peuvent subsister ; on en profite.
+  purgePlanningsOrphelins(env, ctx);
+
+  return json({ ok: true, semainesSupprimees: semaines.length, rdvsSupprimes: rdvs.length });
 }
 
 /** Renvoie le HTML du planning de stage imprimable (colonne formule
@@ -1682,6 +1718,37 @@ function purgeJournal(env, ctx) {
       .map((r) => r.id);
     if (old.length) await grist(env, "POST", `/tables/${T_JOURNAL}/data/delete`, old);
   })().catch((e) => console.error("purgeJournal:", (e && e.message) || e));
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(p);
+}
+
+// Délai de grâce avant purge d'une semaine de planning orpheline (jours).
+const HEBDO_ORPHELIN_RETENTION_JOURS = 30;
+
+/**
+ * Purge les semaines PLANNING_HEBDO qui ne sont plus rattachées à aucune
+ * période de stage existante (référence vide ou période supprimée) et dont le
+ * lundi remonte à plus de HEBDO_ORPHELIN_RETENTION_JOURS : passé ce délai,
+ * personne ne viendra les re-rattacher. Appelé à chaque connexion et après
+ * chaque suppression de période. Best-effort, en waitUntil, par lots de 500.
+ */
+function purgePlanningsOrphelins(env, ctx) {
+  const p = (async () => {
+    const cutoff = Math.floor(Date.now() / 1000) - HEBDO_ORPHELIN_RETENTION_JOURS * 24 * 3600;
+    const [semaines, periodes] = await Promise.all([
+      gristAll(env, T_HEBDO),
+      gristAll(env, T_PERIODES),
+    ]);
+    const periodeIds = new Set(periodes.map((r) => r.id));
+    const orphelines = semaines
+      .filter((s) => !periodeIds.has(s.fields.Periode)
+        && (s.fields.Semaine_debut || 0) < cutoff)
+      .slice(0, 500)
+      .map((s) => s.id);
+    if (orphelines.length) {
+      await grist(env, "POST", `/tables/${T_HEBDO}/data/delete`, orphelines);
+      console.log(`purgePlanningsOrphelins: ${orphelines.length} semaine(s) purgée(s)`);
+    }
+  })().catch((e) => console.error("purgePlanningsOrphelins:", (e && e.message) || e));
   if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(p);
 }
 
