@@ -26,6 +26,9 @@
    etablissement.js, qui remplit ensuite les .js-etab-* injectés ici. */
 
 (function () {
+  // Lien « Administration (Grist) » par défaut ; remplacé par la colonne
+  // ETABLISSEMENT.Url_document_grist (endpoint /api/config) via
+  // etablissement.js quand elle est renseignée (classe js-etab-admin).
   const GRIST_URL =
     "https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT/";
 
@@ -110,7 +113,7 @@
       '<a href="guide-admin.html">Guide administrateur</a>' +
       (avecAdmin
         ? '<span class="sep">·</span>' +
-          '<a href="' + GRIST_URL + '" target="_blank" rel="noopener">Administration (Grist)</a>'
+          '<a class="js-etab-admin" href="' + GRIST_URL + '" target="_blank" rel="noopener">Administration (Grist)</a>'
         : "") +
       "</div>" +
       '<p class="fr-footer-mention">' +
