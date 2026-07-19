@@ -33,6 +33,20 @@
         a.href = cfg.urlDocumentGrist;
       });
     }
+    // Texte du pied de page : piloté par la colonne facultative
+    // ETABLISSEMENT.Texte_pied_de_page ; vide -> texte par défaut de layout.js.
+    if (cfg.textePiedDePage) {
+      document.querySelectorAll(".js-etab-footer-desc").forEach((p) => {
+        p.textContent = cfg.textePiedDePage;
+      });
+    }
+    // Bandeau « Version bêta » (haut de page + mention du pied) : masqué quand
+    // la bascule ETABLISSEMENT.Afficher_bandeau_beta est décochée.
+    if (cfg.afficherBeta === false) {
+      document.querySelectorAll(".fr-notice, .js-beta-mention").forEach((el) => {
+        el.hidden = true;
+      });
+    }
     // Logo de l'établissement (pièce jointe Grist servie par le Worker) ;
     // ?v=<logoId> invalide le cache navigateur quand le logo change.
     const api2 = ((window.CONFIG && window.CONFIG.API_URL) || "").replace(/\/$/, "");
