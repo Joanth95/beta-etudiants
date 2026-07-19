@@ -1,16 +1,15 @@
-name = "espace-etudiant-api"
+name = "beta-etudiant"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
 
 [vars]
-# URL de l'API de l'instance Grist de la DINUM
+# URL de l'API de l'instance Grist
 GRIST_BASE_URL = "https://grist.numerique.gouv.fr/api"
 
 # Identifiant du document Grist GESTION-ETUDIANT
-# (https://grist.numerique.gouv.fr/o/chr-metz-thionville/qdm9zxQGmCPH/GESTION-ETUDIANT)
 GRIST_DOC_ID = "9vaW4zNp32X4"
 
-# Origine autorisée : seul le site GitHub Pages peut appeler ce proxy
+# Origine autorisée : seul ce site peut appeler le proxy
 ALLOWED_ORIGIN = "https://joanth95.github.io"
 
 # La clé API Grist est un SECRET, ne jamais la mettre ici.
